@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BRAND_LOGO_FULL, BRAND_LOGO_ICON } from './brandAssets';
 
-const TABS = ['Home', 'Activities', 'Events', 'About', 'Team', 'Contact'];
+const TABS = ['Home', 'Activities', 'Events', 'Roadmaps', 'About', 'Team', 'Contact'];
 
 function ThemeToggle({ theme, onToggle }) {
   return (
