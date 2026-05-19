@@ -235,3 +235,30 @@
   inset: 0;
   background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(204, 17, 17, 0.005) 2px, rgba(204, 17, 17, 0.005) 4px);
 }
+/* ===== FIX #19: Hero section mobile fixes ===== */
+@media (max-width: 768px) {
+  .stats-bar {
+    max-width: 100% !important;
+    margin: 28px 16px 0 !important;
+  }
+
+  .scroll-indicator {
+    bottom: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-logo-wrap {
+    width: 200px !important;
+    height: 200px !important;
+  }
+
+  .hero-logo-img {
+    width: 160px !important;
+    height: 160px !important;
+  }
+
+  .data-streams {
+    display: none !important; /* hide on tiny screens to prevent layout shift */
+  }
+}

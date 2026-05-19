@@ -32,7 +32,7 @@ try {
       localStorage.removeItem('ns_db_events');
     }
   }
-} catch (e) { console.error('Migration failed', e); }
+} catch (e) { if (import.meta.env.DEV) console.error('Migration failed', e); }
 
 // Mock DB helpers with default seeding
 const getDb = (key, defaultVal) => {
@@ -100,7 +100,7 @@ async function fetchWithAuth(url, options = {}) {
       }
       return res.json();
     } catch (e) {
-      console.warn('Live API failed, falling back to local storage offline mode...', e);
+      if (import.meta.env.DEV) console.warn('Live API failed, falling back to local storage offline mode...', e);
     }
   }
 

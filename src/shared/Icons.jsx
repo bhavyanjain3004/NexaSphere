@@ -128,7 +128,9 @@ export const ICON_MAP = {
 export function DynamicIcon({ name, size = 24, ...props }) {
   const IconComponent = ICON_MAP[name];
   if (!IconComponent) {
-    console.warn(`Icon "${name}" not found in ICON_MAP`);
+    if (!import.meta.env.PROD) {
+      console.warn(`Icon "${name}" not found in ICON_MAP`);
+    }
     return null; // Ensure no text is returned
   }
   return <IconComponent size={size} {...props} />;

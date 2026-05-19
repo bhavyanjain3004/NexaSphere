@@ -21,13 +21,13 @@ export const auth = {
       const data = await res.json();
       localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(EMAIL_KEY, cleanEmail);
-      console.log('[Auth] Logged in via LIVE Java backend ✓');
+      if (import.meta.env.DEV) console.log('[Auth] Logged in via LIVE Java backend ✓');
       return data;
     } catch (err) {
       // Only fall back to mock if Java server is completely unreachable (network error)
       const isNetworkError = err instanceof TypeError && err.message.includes('fetch');
       if (isNetworkError && cleanEmail === 'nexasphere@glbajajgroup.org' && cleanPassword === 'Admin@123') {
-        console.warn('[Auth] Java server unreachable — falling back to OFFLINE mock mode');
+        if (import.meta.env.DEV) console.warn('[Auth] Java server unreachable — falling back to OFFLINE mock mode');
         const mockToken = 'mock-jwt-token-for-nexasphere-admin';
         localStorage.setItem(TOKEN_KEY, mockToken);
         localStorage.setItem(EMAIL_KEY, cleanEmail);

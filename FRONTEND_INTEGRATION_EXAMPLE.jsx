@@ -42,7 +42,7 @@ const setupUserTracking = async () => {
       setUserContext(user)
     }
   } catch (error) {
-    console.error('Failed to set user context:', error)
+    if (import.meta.env.DEV) console.error('Failed to set user context:', error)
   }
 }
 
@@ -60,6 +60,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
 // Handle unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason)
+  if (import.meta.env.DEV) console.error('Unhandled promise rejection:', event.reason)
   // Sentry will capture this through its integration
 })

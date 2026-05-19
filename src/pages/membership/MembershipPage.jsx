@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import useFormValidation from '../../hooks/useFormValidation';
 import { DynamicIcon, IconArrowLeft, IconArrowRight, IconBolt, IconShieldCheck, IconUsers } from '../../shared/Icons';
 import Footer from '../../shared/Footer';
 
@@ -32,7 +33,7 @@ const MEMBERSHIP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRQOW3Xj
 
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
-function Field({ label, required, hint, children }) {
+function Field({ label, required, hint, error, errorId, children }) {
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
@@ -48,11 +49,26 @@ function Field({ label, required, hint, children }) {
         {hint ? <div style={{ color: 'var(--t3)', fontSize: '.82rem' }}>{hint}</div> : null}
       </div>
       {children}
+      {error && (
+        <div
+          id={errorId}
+          role="alert"
+          style={{
+            color: '#ef4444',
+            fontSize: '.85rem',
+            marginTop: 4,
+            fontWeight: 600,
+            animation: 'fadeIn .25s ease'
+          }}
+        >
+          {error}
+        </div>
+      )}
     </div>
   );
 }
 
-function Input({ value, onChange, placeholder, type = 'text', maxLength, inputMode: inputModeProp, onPaste }) {
+function Input({ value, onChange, placeholder, type = 'text', maxLength, inputMode: inputModeProp, onPaste, onBlur, ...rest }) {
   return (
     <input
       value={value}
@@ -66,7 +82,7 @@ function Input({ value, onChange, placeholder, type = 'text', maxLength, inputMo
         width: '100%',
         padding: '12px 14px',
         background: 'var(--card2)',
-        border: '1px solid var(--bdr2)',
+        border: rest['aria-invalid'] === 'true' ? '1px solid #ef4444' : '1px solid var(--bdr2)',
         borderRadius: 'var(--r2)',
         color: 'var(--t1)',
         fontFamily: 'Rajdhani,sans-serif',
@@ -74,13 +90,18 @@ function Input({ value, onChange, placeholder, type = 'text', maxLength, inputMo
         outline: 'none',
         boxSizing: 'border-box',
       }}
-      onFocus={e => { e.target.style.borderColor = 'var(--c1b)'; e.target.style.boxShadow = 'var(--sh1)'; }}
-      onBlur={e  => { e.target.style.borderColor = 'var(--bdr2)';  e.target.style.boxShadow = 'none'; }}
+      onFocus={e => { e.target.style.borderColor = rest['aria-invalid'] === 'true' ? '#ef4444' : 'var(--c1b)'; e.target.style.boxShadow = rest['aria-invalid'] === 'true' ? '0 0 0 2px rgba(239, 68, 68, 0.2)' : 'var(--sh1)'; }}
+      onBlur={e  => {
+        e.target.style.borderColor = rest['aria-invalid'] === 'true' ? '#ef4444' : 'var(--bdr2)';
+        e.target.style.boxShadow = 'none';
+        if (onBlur) onBlur(e);
+      }}
+      {...rest}
     />
   );
 }
 
-function TextArea({ value, onChange, placeholder, rows = 5 }) {
+function TextArea({ value, onChange, placeholder, rows = 5, onBlur, ...rest }) {
   return (
     <textarea
       value={value}
@@ -91,7 +112,7 @@ function TextArea({ value, onChange, placeholder, rows = 5 }) {
         width: '100%',
         padding: '12px 14px',
         background: 'var(--card2)',
-        border: '1px solid var(--bdr2)',
+        border: rest['aria-invalid'] === 'true' ? '1px solid #ef4444' : '1px solid var(--bdr2)',
         borderRadius: 'var(--r2)',
         color: 'var(--t1)',
         fontFamily: 'Rajdhani,sans-serif',
@@ -100,15 +121,20 @@ function TextArea({ value, onChange, placeholder, rows = 5 }) {
         resize: 'vertical',
         boxSizing: 'border-box',
       }}
-      onFocus={e => { e.target.style.borderColor = 'var(--c1b)'; e.target.style.boxShadow = 'var(--sh1)'; }}
-      onBlur={e  => { e.target.style.borderColor = 'var(--bdr2)';  e.target.style.boxShadow = 'none'; }}
+      onFocus={e => { e.target.style.borderColor = rest['aria-invalid'] === 'true' ? '#ef4444' : 'var(--c1b)'; e.target.style.boxShadow = rest['aria-invalid'] === 'true' ? '0 0 0 2px rgba(239, 68, 68, 0.2)' : 'var(--sh1)'; }}
+      onBlur={e  => {
+        e.target.style.borderColor = rest['aria-invalid'] === 'true' ? '#ef4444' : 'var(--bdr2)';
+        e.target.style.boxShadow = 'none';
+        if (onBlur) onBlur(e);
+      }}
+      {...rest}
     />
   );
 }
 
 const SELECT_ARROW = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23CC1111' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`;
 
-function StyledSelect({ value, onChange, children, placeholder }) {
+function StyledSelect({ value, onChange, children, placeholder, onBlur, ...rest }) {
   return (
     <select
       value={value}
@@ -117,7 +143,7 @@ function StyledSelect({ value, onChange, children, placeholder }) {
         width: '100%',
         padding: '12px 14px',
         background: 'var(--card2)',
-        border: '1px solid var(--bdr2)',
+        border: rest['aria-invalid'] === 'true' ? '1px solid #ef4444' : '1px solid var(--bdr2)',
         borderRadius: 'var(--r2)',
         color: value ? 'var(--t1)' : 'var(--t3)',
         fontFamily: 'Rajdhani,sans-serif',
@@ -132,8 +158,13 @@ function StyledSelect({ value, onChange, children, placeholder }) {
         paddingRight: '36px',
         boxSizing: 'border-box',
       }}
-      onFocus={e => { e.target.style.borderColor = 'var(--c1b)'; e.target.style.boxShadow = 'var(--sh1)'; }}
-      onBlur={e  => { e.target.style.borderColor = 'var(--bdr2)';  e.target.style.boxShadow = 'none'; }}
+      onFocus={e => { e.target.style.borderColor = rest['aria-invalid'] === 'true' ? '#ef4444' : 'var(--c1b)'; e.target.style.boxShadow = rest['aria-invalid'] === 'true' ? '0 0 0 2px rgba(239, 68, 68, 0.2)' : 'var(--sh1)'; }}
+      onBlur={e  => {
+        e.target.style.borderColor = rest['aria-invalid'] === 'true' ? '#ef4444' : 'var(--bdr2)';
+        e.target.style.boxShadow = 'none';
+        if (onBlur) onBlur(e);
+      }}
+      {...rest}
     >
       {placeholder && <option value="" disabled>{placeholder}</option>}
       {children}
@@ -167,9 +198,9 @@ function PillRadio({ options, value, onChange }) {
   );
 }
 
-function MultiSelectChips({ options, values, onToggle }) {
+function MultiSelectChips({ options, values, onToggle, ...rest }) {
   return (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }} {...rest}>
       {options.map(opt => {
         const active = values.includes(opt);
         return (
@@ -178,6 +209,7 @@ function MultiSelectChips({ options, values, onToggle }) {
             type="button"
             onClick={() => onToggle(opt)}
             className="btn btn-outline btn-sm"
+            aria-pressed={active}
             style={{
               background:  active ? 'rgba(0,212,255,.12)' : undefined,
               borderColor: active ? 'var(--c1)' : undefined,
@@ -212,51 +244,117 @@ export default function MembershipPage({ onBack }) {
     } catch { /* ignore */ }
   }, []);
 
-  const [form, setForm] = useState({
-    
-    fullName:     '',
-    collegeEmail: '',
-    rollNumber:   '',
-    course:       '',
-    courseOther:  '',
-    branch:       '',
-    branchOther:  '',
-    section:      '',
-    sectionOther: '',
-    semester:     '',
-    whatsapp:     '',
-    
-    groups:       [],
-    whyJoin:      '',
-  });
+  const {
+    values: form,
+    errors,
+    touched,
+    handleChange,
+    handleBlur,
+    validateForm,
+    resetForm,
+    setValues,
+    setErrors,
+  } = useFormValidation(
+    {
+      fullName:     '',
+      collegeEmail: '',
+      rollNumber:   '',
+      course:       '',
+      courseOther:  '',
+      branch:       '',
+      branchOther:  '',
+      section:      '',
+      sectionOther: '',
+      semester:     '',
+      whatsapp:     '',
+      groups:       [],
+      whyJoin:      '',
+    },
+    {
+      fullName: { required: true, requiredMessage: 'Full name is required' },
+      collegeEmail: {
+        required: true,
+        requiredMessage: 'College email is required',
+        email: true,
+        emailMessage: 'Please enter a valid email address',
+        custom: (val) => {
+          if (val && !val.endsWith('@glbajajgroup.org')) {
+            return 'Please use your official GL Bajaj email (@glbajajgroup.org)';
+          }
+        }
+      },
+      rollNumber: { required: true, requiredMessage: 'University roll number is required' },
+      course: { required: true, requiredMessage: 'Course is required' },
+      courseOther: {
+        custom: (val, values) => {
+          if (values.course === 'Other' && !String(val || '').trim()) {
+            return 'Course specification is required';
+          }
+        }
+      },
+      branch: { required: true, requiredMessage: 'Branch/Department is required' },
+      branchOther: {
+        custom: (val, values) => {
+          if (values.branch === 'Other' && !String(val || '').trim()) {
+            return 'Branch specification is required';
+          }
+        }
+      },
+      section: { required: true, requiredMessage: 'Section is required' },
+      sectionOther: {
+        custom: (val, values) => {
+          if (values.section === 'Other' && !String(val || '').trim()) {
+            return 'Section specification is required';
+          }
+        }
+      },
+      semester: { required: true, requiredMessage: 'Semester is required' },
+      whatsapp: {
+        required: true,
+        requiredMessage: 'WhatsApp number is required',
+        phone: true,
+        phoneMessage: 'WhatsApp number must be exactly 10 digits'
+      },
+      groups: {
+        custom: (val) => {
+          if (!val || val.length === 0) {
+            return 'Please select at least one group';
+          }
+        }
+      },
+      whyJoin: { required: true, requiredMessage: 'Please explain why you want to join' },
+    }
+  );
 
-  function set(key, val) { setForm(f => ({ ...f, [key]: val })); }
+  const stepFields = {
+    1: ['fullName', 'collegeEmail', 'rollNumber', 'course', 'courseOther', 'branch', 'branchOther', 'section', 'sectionOther', 'semester', 'whatsapp'],
+    2: ['groups', 'whyJoin']
+  };
 
-  
   const missingRequired = useMemo(() => {
     const missing = [];
-    
-    if (step === 1) {
-      if (!form.fullName.trim())     missing.push('fullName');
-      if (!form.collegeEmail.trim()) missing.push('collegeEmail');
-      if (!form.rollNumber.trim())   missing.push('rollNumber');
-      if (!form.course)              missing.push('course');
-      if (form.course === 'Other' && !form.courseOther.trim()) missing.push('courseOther');
-      if (!form.branch)              missing.push('branch');
-      if (form.branch === 'Other' && !form.branchOther.trim()) missing.push('branchOther');
-      if (!form.section)             missing.push('section');
-      if (form.section === 'Other' && !form.sectionOther.trim()) missing.push('sectionOther');
-      if (!form.semester)            missing.push('semester');
-      const phone = String(form.whatsapp || '').trim();
-      if (!phone || !/^\d{10}$/.test(phone)) missing.push('whatsapp');
-      
-      const email = form.collegeEmail.trim();
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) missing.push('collegeEmail');
-      if (email && !email.endsWith('@glbajajgroup.org')) missing.push('collegeEmail');
-    }
-    if (step === 2) {
-      if (form.groups.length === 0) missing.push('groups');
-      if (!form.whyJoin.trim())     missing.push('whyJoin');
+    const fields = stepFields[step] || [];
+    for (const f of fields) {
+      const v = form[f];
+      if (f === 'groups') {
+        if (!v || v.length === 0) missing.push(f);
+      } else if (f === 'courseOther') {
+        if (form.course === 'Other' && !String(v || '').trim()) missing.push(f);
+      } else if (f === 'branchOther') {
+        if (form.branch === 'Other' && !String(v || '').trim()) missing.push(f);
+      } else if (f === 'sectionOther') {
+        if (form.section === 'Other' && !String(v || '').trim()) missing.push(f);
+      } else if (f === 'collegeEmail') {
+        const email = String(v || '').trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !email.endsWith('@glbajajgroup.org')) {
+          missing.push(f);
+        }
+      } else if (f === 'whatsapp') {
+        const phone = String(v || '').trim();
+        if (!phone || !/^\d{10}$/.test(phone)) missing.push(f);
+      } else {
+        if (!String(v || '').trim()) missing.push(f);
+      }
     }
     return missing;
   }, [form, step]);
@@ -449,76 +547,132 @@ export default function MembershipPage({ onBack }) {
             >Follow on LinkedIn</a>
           </div>
         </div>
-      ),
+      )
     },
-    
     {
-      title:    'Personal Details',
-      subtitle: 'Fill in your basic information accurately using your college details.',
-      icon:     <IconUsers style={{ width: 18, height: 18 }} />,
+        title:    'Personal Details',
+        subtitle: 'Fill in your basic information accurately using your college details.',
+        icon:     <IconUsers style={{ width: 18, height: 18 }} />,
       render: () => (
         <div style={{ display: 'grid', gap: 18 }}>
-          <Field label="Full Name" required>
+          <Field
+            label="Full Name"
+            required
+            error={touched.fullName && errors.fullName}
+            errorId="error-fullName"
+          >
             <Input
+              id="input-fullName"
               value={form.fullName}
-              onChange={v => set('fullName', v.replace(/[^a-zA-Z\s.\-']/g, ''))}
+              onChange={v => handleChange('fullName', v.replace(/[^a-zA-Z\s.\-']/g, ''))}
+              onBlur={() => handleBlur('fullName')}
               placeholder="Your full name"
               maxLength={60}
+              aria-invalid={touched.fullName && errors.fullName ? "true" : "false"}
+              aria-describedby={touched.fullName && errors.fullName ? "error-fullName" : undefined}
             />
           </Field>
 
-          <Field label="College Email ID" required hint="Use your official college email">
+          <Field
+            label="College Email ID"
+            required
+            hint="Use your official college email"
+            error={touched.collegeEmail && errors.collegeEmail}
+            errorId="error-collegeEmail"
+          >
             <Input
+              id="input-collegeEmail"
               value={form.collegeEmail}
-              onChange={v => set('collegeEmail', v.trim().toLowerCase())}
+              onChange={v => handleChange('collegeEmail', v.trim().toLowerCase())}
+              onBlur={() => handleBlur('collegeEmail')}
               placeholder="yourname@glbajajgroup.org"
               type="email"
               maxLength={100}
+              aria-invalid={touched.collegeEmail && errors.collegeEmail ? "true" : "false"}
+              aria-describedby={touched.collegeEmail && errors.collegeEmail ? "error-collegeEmail" : undefined}
             />
-            {form.collegeEmail && !form.collegeEmail.endsWith('@glbajajgroup.org') && (
-              <div style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 4 }}>
-                Please use your official GL Bajaj email (@glbajajgroup.org)
-              </div>
-            )}
           </Field>
 
-          <Field label="University Roll Number" required>
+          <Field
+            label="University Roll Number"
+            required
+            error={touched.rollNumber && errors.rollNumber}
+            errorId="error-rollNumber"
+          >
             <Input
+              id="input-rollNumber"
               value={form.rollNumber}
-              onChange={v => set('rollNumber', v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))}
+              onChange={v => handleChange('rollNumber', v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))}
+              onBlur={() => handleBlur('rollNumber')}
               placeholder="e.g. 2301234"
               maxLength={15}
+              aria-invalid={touched.rollNumber && errors.rollNumber ? "true" : "false"}
+              aria-describedby={touched.rollNumber && errors.rollNumber ? "error-rollNumber" : undefined}
             />
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
-            <Field label="Course" required>
+            <Field
+              label="Course"
+              required
+              error={(touched.course && errors.course) || (touched.courseOther && errors.courseOther)}
+              errorId="error-course"
+            >
               <div style={{ display: 'grid', gap: 8 }}>
-                <StyledSelect value={form.course} onChange={v => set('course', v)} placeholder="Select course">
+                <StyledSelect
+                  id="input-course"
+                  value={form.course}
+                  onChange={v => handleChange('course', v)}
+                  onBlur={() => handleBlur('course')}
+                  placeholder="Select course"
+                  aria-invalid={touched.course && errors.course ? "true" : "false"}
+                  aria-describedby={touched.course && errors.course ? "error-course" : undefined}
+                >
                   {COURSE_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                 </StyledSelect>
                 {form.course === 'Other' && (
                   <Input
+                    id="input-courseOther"
                     value={form.courseOther}
-                    onChange={v => set('courseOther', v.replace(/[^a-zA-Z0-9\s\-&().]/g, ''))}
+                    onChange={v => handleChange('courseOther', v.replace(/[^a-zA-Z0-9\s\-&().]/g, ''))}
+                    onBlur={() => handleBlur('courseOther')}
                     placeholder="Specify your course"
                     maxLength={60}
+                    aria-invalid={touched.courseOther && errors.courseOther ? "true" : "false"}
+                    aria-describedby={touched.courseOther && errors.courseOther ? "error-course" : undefined}
                   />
                 )}
               </div>
             </Field>
 
-            <Field label="Branch / Department" required>
+            <Field
+              label="Branch / Department"
+              required
+              error={(touched.branch && errors.branch) || (touched.branchOther && errors.branchOther)}
+              errorId="error-branch"
+            >
               <div style={{ display: 'grid', gap: 8 }}>
-                <StyledSelect value={form.branch} onChange={v => set('branch', v)} placeholder="Select branch">
+                <StyledSelect
+                  id="input-branch"
+                  value={form.branch}
+                  onChange={v => handleChange('branch', v)}
+                  onBlur={() => handleBlur('branch')}
+                  placeholder="Select branch"
+                  aria-invalid={touched.branch && errors.branch ? "true" : "false"}
+                  aria-describedby={touched.branch && errors.branch ? "error-branch" : undefined}
+                >
                   {BRANCH_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
                 </StyledSelect>
                 {form.branch === 'Other' && (
                   <Input
+                    id="input-branchOther"
                     value={form.branchOther}
-                    onChange={v => set('branchOther', v.replace(/[^a-zA-Z0-9\s\-&().]/g, ''))}
+                    onChange={v => handleChange('branchOther', v.replace(/[^a-zA-Z0-9\s\-&().]/g, ''))}
+                    onBlur={() => handleBlur('branchOther')}
                     placeholder="Specify your branch"
                     maxLength={60}
+                    aria-invalid={touched.branchOther && errors.branchOther ? "true" : "false"}
+                    aria-describedby={touched.branchOther && errors.branchOther ? "error-branch" : undefined}
                   />
                 )}
               </div>
@@ -526,76 +680,139 @@ export default function MembershipPage({ onBack }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14 }}>
-            <Field label="Section" required hint="Academic Section (A/B/C/...)">
-              <StyledSelect value={form.section} onChange={v => set('section', v)} placeholder="-- Select Section --">
-                {SECTION_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </StyledSelect>
-              {form.section === 'Other' && (
-                <div style={{ marginTop: 10 }}>
-                  <Input
-                    value={form.sectionOther}
-                    onChange={v => set('sectionOther', v)}
-                    placeholder="Type your section manually..."
-                  />
-                </div>
-              )}
+            <Field
+              label="Section"
+              required
+              hint="Academic Section (A/B/C/...)"
+              error={(touched.section && errors.section) || (touched.sectionOther && errors.sectionOther)}
+              errorId="error-section"
+            >
+              <div style={{ display: 'grid', gap: 8 }}>
+                <StyledSelect
+                  id="input-section"
+                  value={form.section}
+                  onChange={v => handleChange('section', v)}
+                  onBlur={() => handleBlur('section')}
+                  placeholder="-- Select Section --"
+                  aria-invalid={touched.section && errors.section ? "true" : "false"}
+                  aria-describedby={touched.section && errors.section ? "error-section" : undefined}
+                >
+                  {SECTION_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </StyledSelect>
+                {form.section === 'Other' && (
+                  <div style={{ marginTop: 10 }}>
+                    <Input
+                      id="input-sectionOther"
+                      value={form.sectionOther}
+                      onChange={v => handleChange('sectionOther', v)}
+                      onBlur={() => handleBlur('sectionOther')}
+                      placeholder="Type your section manually..."
+                      aria-invalid={touched.sectionOther && errors.sectionOther ? "true" : "false"}
+                      aria-describedby={touched.sectionOther && errors.sectionOther ? "error-section" : undefined}
+                    />
+                  </div>
+                )}
+              </div>
             </Field>
 
-            <Field label="Semester" required>
-              <StyledSelect value={form.semester} onChange={v => set('semester', v)} placeholder="Select semester">
+            <Field
+              label="Semester"
+              required
+              error={touched.semester && errors.semester}
+              errorId="error-semester"
+            >
+              <StyledSelect
+                id="input-semester"
+                value={form.semester}
+                onChange={v => handleChange('semester', v)}
+                onBlur={() => handleBlur('semester')}
+                placeholder="Select semester"
+                aria-invalid={touched.semester && errors.semester ? "true" : "false"}
+                aria-describedby={touched.semester && errors.semester ? "error-semester" : undefined}
+              >
                 {SEMESTER_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
               </StyledSelect>
             </Field>
           </div>
 
-          <Field label="WhatsApp Number" required hint="10-digit mobile number">
+          <Field
+            label="WhatsApp Number"
+            required
+            hint="10-digit mobile number"
+            error={touched.whatsapp && errors.whatsapp}
+            errorId="error-whatsapp"
+          >
             <Input
+              id="input-whatsapp"
               value={form.whatsapp}
-              onChange={v => set('whatsapp', String(v || '').replace(/[^\d]/g, '').slice(0, 10))}
+              onChange={v => handleChange('whatsapp', String(v || '').replace(/[^\d]/g, '').slice(0, 10))}
+              onBlur={() => handleBlur('whatsapp')}
               onPaste={e => {
                 e.preventDefault();
                 const pasted = e.clipboardData.getData('text').replace(/[^\d]/g, '').slice(0, 10);
-                set('whatsapp', pasted);
+                handleChange('whatsapp', pasted);
               }}
               placeholder="10-digit mobile number"
               type="tel"
               inputMode="numeric"
               maxLength={10}
+              aria-invalid={touched.whatsapp && errors.whatsapp ? "true" : "false"}
+              aria-describedby={touched.whatsapp && errors.whatsapp ? "error-whatsapp" : undefined}
             />
           </Field>
         </div>
       ),
     },
-    
+
     {
       title:    'Domain Selection',
       subtitle: 'Choose the NexaSphere groups you want to join and share your motivation.',
       icon:     <IconBolt style={{ width: 18, height: 18 }} />,
       render: () => (
         <div style={{ display: 'grid', gap: 20 }}>
-          <Field label="Which NexaSphere groups would you like to join?" required hint="Select one or more.">
+          <Field
+            label="Which NexaSphere groups would you like to join?"
+            required
+            hint="Select one or more."
+            error={touched.groups && errors.groups}
+            errorId="error-groups"
+          >
             <MultiSelectChips
+              id="input-groups"
               options={GROUP_OPTIONS}
               values={form.groups}
-              onToggle={opt => set('groups', form.groups.includes(opt)
-                ? form.groups.filter(x => x !== opt)
-                : [...form.groups, opt]
-              )}
+              onToggle={opt => {
+                const nextVal = form.groups.includes(opt)
+                  ? form.groups.filter(x => x !== opt)
+                  : [...form.groups, opt];
+                handleChange('groups', nextVal);
+              }}
+              aria-invalid={touched.groups && errors.groups ? "true" : "false"}
+              aria-describedby={touched.groups && errors.groups ? "error-groups" : undefined}
             />
           </Field>
 
-          <Field label="Why do you want to join NexaSphere?" required>
+          <Field
+            label="Why do you want to join NexaSphere?"
+            required
+            error={touched.whyJoin && errors.whyJoin}
+            errorId="error-whyJoin"
+          >
             <TextArea
+              id="input-whyJoin"
               value={form.whyJoin}
-              onChange={v => set('whyJoin', v)}
+              onChange={v => handleChange('whyJoin', v)}
+              onBlur={() => handleBlur('whyJoin')}
               placeholder="Share your motivation and what you hope to learn or contribute."
               rows={6}
+              aria-invalid={touched.whyJoin && errors.whyJoin ? "true" : "false"}
+              aria-describedby={touched.whyJoin && errors.whyJoin ? "error-whyJoin" : undefined}
             />
           </Field>
         </div>
       ),
     },
-  ], [form]);
+  ], [form, errors, touched]);
 
   const current  = steps[step];
   const progress = step / (steps.length - 1);
@@ -861,7 +1078,7 @@ export default function MembershipPage({ onBack }) {
                 ) : null}
 
                 
-                <div style={{ marginTop:22, display:'flex', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
+                 <div style={{ marginTop:22, display:'flex', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
                   <button
                     className="btn btn-outline"
                     type="button"
@@ -881,14 +1098,43 @@ export default function MembershipPage({ onBack }) {
                     <button
                       className="btn btn-primary btn-ripple"
                       type="button"
-                      disabled={busy || !canNext}
+                      disabled={busy}
                       onClick={() => {
-                        if (!canNext) { setErr('Please complete the required fields (*) to proceed.'); return; }
+                        const fields = stepFields[step];
+                        if (fields) {
+                          const isStepValid = validateForm(fields);
+                          if (!isStepValid) {
+                            setErr('Please complete all required fields (*) with valid details to proceed.');
+                            const firstInvalid = fields.find(f => {
+                              const v = form[f];
+                              if (f === 'groups') return !v || v.length === 0;
+                              if (f === 'courseOther') return form.course === 'Other' && !String(v || '').trim();
+                              if (f === 'branchOther') return form.branch === 'Other' && !String(v || '').trim();
+                              if (f === 'sectionOther') return form.section === 'Other' && !String(v || '').trim();
+                              if (f === 'collegeEmail') {
+                                const email = String(v || '').trim();
+                                return !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !email.endsWith('@glbajajgroup.org');
+                              }
+                              if (f === 'whatsapp') {
+                                const phone = String(v || '').trim();
+                                return !phone || !/^\d{10}$/.test(phone);
+                              }
+                              return !String(v || '').trim();
+                            });
+                            if (firstInvalid) {
+                              const el = document.getElementById(`input-${firstInvalid}`);
+                              if (el) {
+                                el.focus();
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }
+                            }
+                            return;
+                          }
+                        }
                         setErr('');
                         setStep(s => clamp(s + 1, 0, steps.length - 1));
                         scrollTop();
                       }}
-                      style={{ opacity: canNext ? 1 : .65 }}
                     >
                       <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
                         Continue <IconArrowRight/>
@@ -898,9 +1144,29 @@ export default function MembershipPage({ onBack }) {
                     <button
                       className="btn btn-primary btn-ripple"
                       type="button"
-                      disabled={busy || !canNext}
+                      disabled={busy}
                       onClick={() => {
-                        if (!canNext) { setErr('Please complete the required fields (*) to submit.'); return; }
+                        const fields = stepFields[step];
+                        if (fields) {
+                          const isStepValid = validateForm(fields);
+                          if (!isStepValid) {
+                            setErr('Please complete all required fields (*) with valid details to submit.');
+                            const firstInvalid = fields.find(f => {
+                              const v = form[f];
+                              if (f === 'groups') return !v || v.length === 0;
+                              if (f === 'whyJoin') return !String(v || '').trim();
+                              return false;
+                            });
+                            if (firstInvalid) {
+                              const el = document.getElementById(`input-${firstInvalid}`);
+                              if (el) {
+                                el.focus();
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }
+                            }
+                            return;
+                          }
+                        }
                         submit();
                       }}
                     >

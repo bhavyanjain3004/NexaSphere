@@ -61,7 +61,7 @@ function useRealtimeUpdates(userId, email) {
 
     // Listen to registration-confirmed event
     on('registrationConfirmed', (data) => {
-      console.log('You registered for:', data.eventName);
+      if (import.meta.env.DEV) console.log('You registered for:', data.eventName);
       setRegistrationUpdate(data);
 
       // Show notification
@@ -79,7 +79,7 @@ function useRealtimeUpdates(userId, email) {
 
     // Listen to waitlist-promotion event
     on('waitlistPromotion', (data) => {
-      console.log('Promoted from waitlist');
+      if (import.meta.env.DEV) console.log('Promoted from waitlist');
       setPromotionUpdate(data);
 
       showNotification('🎉 Promotion!', {
@@ -94,7 +94,7 @@ function useRealtimeUpdates(userId, email) {
 
     // Listen to event-reminder event
     on('eventReminder', (data) => {
-      console.log('Event reminder for:', data.eventName);
+      if (import.meta.env.DEV) console.log('Event reminder for:', data.eventName);
       setReminderUpdate(data);
 
       showNotification('⏰ Event Reminder', {
@@ -109,7 +109,7 @@ function useRealtimeUpdates(userId, email) {
 
     // Listen to attendance-marked event
     on('attendanceMarked', (data) => {
-      console.log('Attendance marked:', data.points, 'points earned');
+      if (import.meta.env.DEV) console.log('Attendance marked:', data.points, 'points earned');
       setAttendanceUpdate(data);
 
       showNotification('✅ Attendance Marked', {
@@ -282,12 +282,12 @@ function AdminMetricsDashboard() {
         setMetrics(data.data);
         logger.info('Metrics updated via SSE', data.data);
       } catch (error) {
-        console.error('Failed to parse SSE data:', error);
+        if (import.meta.env.DEV) console.error('Failed to parse SSE data:', error);
       }
     });
 
     eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
+      if (import.meta.env.DEV) console.error('SSE connection error:', error);
       eventSource.close();
     };
 
@@ -360,7 +360,7 @@ function connectToAdminStream() {
     const eventSource = new EventSource('/api/admin/stream');
 
     eventSource.onerror = () => {
-      console.log('Admin stream disconnected');
+      if (import.meta.env.DEV) console.log('Admin stream disconnected');
       eventSource.close();
     };
   }

@@ -42,14 +42,14 @@ export default function Cursor() {
       s.oy += (s.my - s.oy) * 0.18;
 
       s.floatPhase += 0.022;
-      s.floatY = Math.sin(s.floatPhase) * 6 +
-        Math.sin(s.floatPhase * 1.7) * 3 +
-        Math.sin(s.floatPhase * 0.5) * 4;
+      s.floatY = Math.sin(s.floatPhase) * 2 +
+  Math.sin(s.floatPhase * 1.7) * 1 +
+  Math.sin(s.floatPhase * 0.5) * 1.5;
 
       const fy = s.oy + s.floatY;
 
-      const scale = s.clicking ? 0.7 : s.hovering ? 1.55 : 1;
-      const opacity = s.hovering ? 0.95 : 0.82;
+      const scale = s.clicking ? 0.9 : s.hovering ? 1.15 : 1;
+      const opacity = s.hovering ? 0.75 : 0.6;
 
       if (orbRef.current) {
         orbRef.current.style.left = s.ox + 'px';
@@ -94,33 +94,33 @@ export default function Cursor() {
     <>
       <div ref={glowRef} style={{
         position:'fixed', pointerEvents:'none', zIndex:10000,
-        width:'320px', height:'320px', borderRadius:'50%',
-        background:'radial-gradient(circle, rgba(204,17,17,.055) 0%, rgba(136,0,0,.03) 40%, transparent 70%)',
+        width:'180px', height:'180px', borderRadius:'50%',
+        background:'radial-gradient(circle, rgba(204,17,17,.025) 0%, rgba(136,0,0,.015) 40%, transparent 70%)',
         transform:'translate(-50%,-50%)',
         transition:'opacity .3s',
       }}/>
 
       <div ref={trailRef} style={{
         position:'fixed', pointerEvents:'none', zIndex:10002,
-        width:'28px', height:'28px', borderRadius:'50%',
-        background:'radial-gradient(circle, rgba(204,17,17,0.7) 0%, transparent 70%)',
+        width:'16px', height:'16px', borderRadius:'50%',
+        background:'radial-gradient(circle, rgba(204,17,17,0.35) 0%, transparent 70%)',
         transform:'translate(-50%,-50%)',
-        filter:'blur(6px)',
+        filter:'blur(3px)',
         transition:'opacity .25s',
       }}/>
 
       <div ref={orbRef} style={{
         position:'fixed', pointerEvents:'none', zIndex:10005,
-        width:'18px', height:'18px', borderRadius:'50%',
-        background:'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40%, #880000 100%)',
-        boxShadow:'0 0 10px rgba(204,17,17,.9), 0 0 24px rgba(204,17,17,.5), 0 0 50px rgba(136,0,0,.3)',
+        width:'12px', height:'12px', borderRadius:'50%',
+        background:'radial-gradient(circle at 35% 35%, #fff 0%, #CC1111 40% #880000 100%)',
+        boxShadow:'0 0 4px rgba(204,17,17,.35), 0 0 8px rgba(204,17,17,.15)',
         transition:'transform .18s cubic-bezier(.34,1.56,.64,1), opacity .2s',
       }}>
         <div style={{
           position:'absolute', top:'20%', left:'22%',
-          width:'5px', height:'5px', borderRadius:'50%',
-          background:'rgba(255,255,255,.9)',
-          filter:'blur(1px)',
+          width:'3px', height:'3px', borderRadius:'50%',
+          background:'rgba(255,255,255,.7)',
+          filter:'blur(.5px)',
         }}/>
       </div>
     </>

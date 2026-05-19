@@ -216,3 +216,27 @@
   .message-cta-box { padding: 24px 18px; }
   .contact-card { padding: 24px 18px 22px; }
 }
+
+/* ===== FIX #19: Contact page mobile fixes ===== */
+@media (max-width: 640px) {
+  .contact-hero {
+    padding: 48px 16px 36px !important;
+  }
+
+  .map-container {
+    aspect-ratio: 4/3 !important;
+  }
+
+  .message-cta-box {
+    padding: 20px 14px !important;
+  }
+
+  .name-input {
+    font-size: 1rem !important; /* prevents iOS zoom on focus */
+  }
+
+  .footer-info-box {
+    padding: 18px 14px !important;
+    margin-top: 36px !important;
+  }
+}

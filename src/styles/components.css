@@ -775,3 +775,194 @@
   .ns-nav-logo-full { display: block; }
 }
 [data-theme="light"] .ns-nav-logo-full { filter: drop-shadow(0 0 6px rgba(230,57,70,0.2)); }
+/* ===== FIX #19: UI Overlapping & Misalignment ===== */
+
+/* Mobile navbar top row - prevent logo/brand/toggle overlap */
+.ns-mobile-top {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding: 0 14px 5px !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden !important;
+}
+
+.ns-mobile-brand {
+  flex: 1 !important;
+  text-align: center !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.ns-mobile-logo-ns {
+  flex-shrink: 0 !important;
+}
+
+.ns-theme-toggle {
+  flex-shrink: 0 !important;
+}
+
+/* Mobile tabs - prevent overflow clipping */
+.ns-mobile-tabs {
+  display: flex !important;
+  overflow-x: auto !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  padding: 0 4px 2px !important;
+  gap: 0 !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Desktop navbar container grid fix */
+@media (max-width: 900px) {
+  .ns-navbar .container {
+    grid-template-columns: auto 1fr auto !important;
+    gap: 8px !important;
+  }
+
+  .ns-nav-tabs {
+    gap: 0 !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+
+  .ns-nav-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .ns-nav-tab {
+    padding: 8px 10px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* Hero section - prevent CTA button overlap on small screens */
+@media (max-width: 480px) {
+  .hero-buttons-row {
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  .hero-buttons-row .btn {
+    width: 100% !important;
+    max-width: 280px !important;
+    justify-content: center !important;
+  }
+
+  .apply-container {
+    padding: 12px 16px !important;
+    max-width: 100% !important;
+  }
+
+  .hero-content {
+    padding: 0 16px 80px !important;
+  }
+
+  .hero-title-text {
+    font-size: clamp(2rem, 8vw, 3.5rem) !important;
+    letter-spacing: 0.06em !important;
+  }
+
+  .hero-tagline {
+    font-size: 0.75rem !important;
+    letter-spacing: 0.1em !important;
+    word-break: break-word !important;
+  }
+}
+
+/* Stats bar - prevent overflow on tiny screens */
+@media (max-width: 400px) {
+  .stats-bar {
+    flex-wrap: wrap !important;
+    border-radius: 12px !important;
+  }
+
+  .stats-item {
+    flex: 1 1 45% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* Activity grid - prevent card overflow */
+@media (max-width: 640px) {
+  .activity-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .activity-card {
+    overflow: hidden !important;
+    width: 100% !important;
+  }
+}
+
+/* Team grid - prevent card overflow on mobile */
+@media (max-width: 480px) {
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+}
+
+/* Timeline - already has mobile fix but ensure no overflow */
+@media (max-width: 640px) {
+  .timeline-card {
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+}
+
+/* Contact cards - fix grid overflow */
+@media (max-width: 480px) {
+  .contact-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .contact-card {
+    padding: 20px 16px !important;
+  }
+
+  .contact-card-value {
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
+/* Modal - fix overlap on very small screens */
+@media (max-width: 380px) {
+  .modal-box {
+    padding: 22px 14px !important;
+    max-height: 95vh !important;
+  }
+
+  .modal-social {
+    gap: 6px !important;
+  }
+
+  .modal-social-btn {
+    padding: 6px 10px !important;
+    font-size: 0.68rem !important;
+  }
+}
+
+/* Footer logos - prevent overlap */
+.ns-footer-inner {
+  overflow: hidden !important;
+  width: 100% !important;
+}
+
+/* General container safety */
+.container {
+  max-width: 1240px !important;
+  overflow: visible !important;
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden !important;
+  }
+}

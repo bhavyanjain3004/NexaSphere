@@ -9,8 +9,8 @@ import * as Sentry from "@sentry/react";
  * Initialize Sentry for frontend error tracking
  * @param {string} environment - Environment (development, staging, production)
  */
-export const initializeSentry = (environment = process.env.NODE_ENV) => {
-  const isDevelopment = environment === "development";
+export const initializeSentry = (environment = import.meta.env.MODE) => {
+  const isDevelopment = import.meta.env.DEV;
 
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN || process.env.SENTRY_DSN,
@@ -50,7 +50,7 @@ export const captureApiError = (error, context = {}) => {
   });
 
   // Also log to console in development
-  if (process.env.NODE_ENV === "development") {
+  if (import.meta.env.DEV) {
     console.error("API Error:", error, context);
   }
 };
