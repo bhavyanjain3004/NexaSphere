@@ -680,6 +680,33 @@ app.delete('/api/admin/core-team/:id', adminAuth, async (req, res) => {
   }
 });
 
+app.get('/api/admin/membership', adminAuth, async (req, res) => {
+  const scriptUrl = process.env.MEMBERSHIP_SCRIPT_URL;
+  const secret = process.env.MEMBERSHIP_SECRET;
+
+  if (!scriptUrl || !secret) {
+    return res.json({ responses: [] });
+  }
+
+  try {
+    const response = await fetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'getResponses', token: secret }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Google Apps Script returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    return res.json({ responses: data.responses || [] });
+  } catch (err) {
+    console.error('[Membership] Failed to fetch responses:', err.message);
+    return res.status(500).json({ error: 'Failed to fetch membership responses' });
+  }
+});
+
 async function handleForm(formType, req, res) {
   try {
     const payload = normalizeFormSubmission(formType, req.body || {});

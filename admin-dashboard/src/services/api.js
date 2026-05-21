@@ -251,19 +251,6 @@ export const api = {
   },
 
   membership: {
-    getAll: () => {
-      const scriptUrl = import.meta.env.VITE_MEMBERSHIP_SCRIPT_URL;
-      const secret = import.meta.env.VITE_MEMBERSHIP_SECRET || 'NEXA_SECRET_2026';
-
-      if (scriptUrl) {
-        // Fetch from Google Apps Script (production)
-        return fetch(`${scriptUrl}?token=${secret}`)
-          .then(r => r.json())
-          .catch(() => ({ responses: [] }));
-      }
-
-      // No Google Script configured — return empty (no Java endpoint for this)
-      return Promise.resolve({ responses: [] });
-    }
+    getAll: () => fetchWithAuth('/api/admin/membership'),
   },
 };
