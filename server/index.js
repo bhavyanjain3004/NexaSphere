@@ -15,6 +15,8 @@ import analyticsRouter from './routes/analytics.js';
 import { initializeSocketIO, emitToRoom, getRoom } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
 import { broadcastSSEEvent } from './services/sseService.js';
+import rateLimit from 'express-rate-limit';
+
 import { portfolioRepository } from './repositories/portfolioRepository.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -717,6 +719,7 @@ app.get('/api/admin/membership', adminAuth, async (req, res) => {
     return res.json({ responses: [] });
   }
 
+
   try {
     const response = await fetch(scriptUrl, {
       method: 'POST',
@@ -779,10 +782,15 @@ async function handleForm(formType, req, res) {
   }
 }
 
-app.post('/api/forms/membership', (req, res) => handleForm('membership', req, res));
-app.post('/api/forms/recruitment', (req, res) => handleForm('recruitment', req, res));
-app.post('/api/core-team/apply', (req, res) => handleForm('core_team', req, res));
+const formRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: { error: 'Too many form submissions from this IP, please try again after 10 minutes' }
+});
 
+app.post('/api/forms/membership', formRateLimiter, (req, res) => handleForm('membership', req, res));
+app.post('/api/forms/recruitment', formRateLimiter, (req, res) => handleForm('recruitment', req, res));
+app.post('/api/core-team/apply', formRateLimiter, (req, res) => handleForm('core_team', req, res));
 // Real-time notification subscriber channels
 const pushSubscriptions = new Set();
 app.post('/api/notifications/subscribe', (req, res) => {
@@ -854,7 +862,6 @@ app.put('/api/portfolio', async (req, res) => {
 });
 
 
->>>>>>> upstream/main
 const port = Number(process.env.PORT || 8787);
 if (!process.env.VERCEL) {
   const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
