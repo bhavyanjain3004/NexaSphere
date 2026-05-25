@@ -1043,6 +1043,11 @@ process.on('unhandledRejection', (reason) => {
   console.error('[Process] Unhandled rejection:', reason instanceof Error ? reason.message : reason);
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught exception:', err instanceof Error ? err.message : err);
+  if (err && err.stack) console.error(err.stack);
+});
+
 const port = Number(process.env.PORT || 8787);
 if (!process.env.VERCEL) {
   const boot = HAS_SUPABASE ? Promise.resolve() : ensureContentFile();
