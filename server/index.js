@@ -1193,12 +1193,11 @@ app.post("/api/core-team/apply", formRateLimiter, (req, res) =>
 );
 // Real-time notification subscriber channels
 const pushSubscriptions = new Set();
-app.post("/api/notifications/subscribe", (req, res) => {
+app.post("/api/notifications/subscribe", notificationRateLimiter, (req, res) => {
   try {
     const { subscription } = req.body;
     if (subscription) {
       pushSubscriptions.add(JSON.stringify(subscription));
-      // Prevent memory leak by capping maximum subscriptions to 10,000
       if (pushSubscriptions.size > 10000) {
         const oldest = pushSubscriptions.values().next().value;
         pushSubscriptions.delete(oldest);
@@ -1209,7 +1208,7 @@ app.post("/api/notifications/subscribe", (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
-app.post("/api/notifications/unsubscribe", (req, res) => {
+app.post("/api/notifications/unsubscribe", notificationRateLimiter, (req, res) => {
   try {
     const { subscription } = req.body;
     if (subscription) pushSubscriptions.delete(JSON.stringify(subscription));
@@ -1222,10 +1221,9 @@ app.post("/api/notifications/unsubscribe", (req, res) => {
 // Server-side notifications API (simple in-memory store)
 import notificationsService from "./services/notificationsService.js";
 
-app.get("/api/notifications", (req, res) => {
+app.get("/api/notifications", adminAuth, notificationRateLimiter, (req, res) => {
   try {
-    // If user id provided via query or auth, use that; otherwise global
-    const userId = req.query.userId || "global";
+    const userId = req.adminSession?.username || "global";
     const list = notificationsService.getNotifications(userId);
     return res.json({ notifications: list });
   } catch (err) {
@@ -1239,9 +1237,9 @@ app.post(
   notificationRateLimiter,
   (req, res) => {
     try {
-      const { id, userId } = req.body || {};
+      const { id } = req.body || {};
       if (!id) return res.status(400).json({ error: "id required" });
-      const uid = userId || "global";
+      const uid = req.adminSession?.username || "global";
       const ok = notificationsService.markAsRead(uid, id);
       return res.json({ success: ok });
     } catch (err) {
@@ -1256,8 +1254,8 @@ app.post(
   notificationRateLimiter,
   (req, res) => {
     try {
-      const { userId } = req.body || {};
-      notificationsService.markAllAsRead(userId || "global");
+      const uid = req.adminSession?.username || "global";
+      notificationsService.markAllAsRead(uid);
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -1272,8 +1270,8 @@ app.delete(
   (req, res) => {
     try {
       const id = req.params.id;
-      const userId = req.query.userId || "global";
-      const removed = notificationsService.removeNotification(userId, id);
+      const uid = req.adminSession?.username || "global";
+      const removed = notificationsService.removeNotification(uid, id);
       if (!removed)
         return res.status(404).json({ error: "Notification not found" });
       return res.json({ success: true });
@@ -1290,8 +1288,8 @@ app.delete(
   notificationRateLimiter,
   (req, res) => {
     try {
-      const userId = req.query.userId || "global";
-      notificationsService.clearAll(userId);
+      const uid = req.adminSession?.username || "global";
+      notificationsService.clearAll(uid);
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -1306,12 +1304,12 @@ app.post(
   notificationRateLimiter,
   (req, res) => {
     try {
-      const { userId, title, message, type, link } = req.body || {};
+      const { title, message, type, link } = req.body || {};
       if (!title || !message)
         return res
           .status(400)
           .json({ error: "title and message are required" });
-      const note = notificationsService.addNotification(userId || "global", {
+      const note = notificationsService.addNotification(req.adminSession?.username || "global", {
         title,
         message,
         type,
