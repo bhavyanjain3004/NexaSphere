@@ -47,20 +47,7 @@ export function initializeSocket(serverUrl = getSocketServerUrl()) {
 
   // Global event handlers - connection lifecycle monitoring
   socket.on('connect', () => {
-    console.log('[Socket.IO] Connected:', socket.id);
     identifyUser(); // try to identify if user info is available locally
-  });
-
-  socket.on('disconnect', (reason) => {
-    console.log('[Socket.IO] Disconnected:', reason);
-  });
-
-  socket.on('reconnect', (attemptNumber) => {
-    console.log('[Socket.IO] Reconnected after', attemptNumber, 'attempts');
-  });
-
-  socket.on('reconnect_attempt', (attemptNumber) => {
-    console.log('[Socket.IO] Reconnecting attempt:', attemptNumber);
   });
 
   socket.on('reconnect_failed', () => {
