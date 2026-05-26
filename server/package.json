@@ -7,7 +7,11 @@
     "dev": "node index.js",
     "build": "echo \"server build step not required\"",
     "test": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "migrate": "node-pg-migrate -f .postgres_migrations_config.json",
+    "migrate:latest": "node-pg-migrate -f .postgres_migrations_config.json up",
+    "migrate:rollback": "node-pg-migrate -f .postgres_migrations_config.json down",
+    "migrate:create": "node-pg-migrate -f .postgres_migrations_config.json create"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.3",
@@ -21,6 +25,7 @@
     "firebase-admin": "^12.0.0",
     "googleapis": "^140.0.1",
     "morgan": "^1.10.0",
+    "node-pg-migrate": "^8.0.4",
     "nodemailer": "^8.0.7",
     "pg": "^8.21.0",
     "redoc-express": "^1.0.0",

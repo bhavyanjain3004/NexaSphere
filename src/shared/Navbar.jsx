@@ -133,46 +133,41 @@ if (compact) return (
             <span className="ns-nav-brand">NexaSphere</span>
           </div>
 
-<div className="ns-nav-actions">
-  <NotificationBell />
-  <BookmarkToggle onToggle={onToggleBookmarks} />
+          <div className="ns-nav-actions">
+            <NotificationBell />
+            <BookmarkToggle onToggle={onToggleBookmarks} />
 
-<div className="ns-nav-actions">
-  <NotificationBell />
+            <div className="ns-nav-ctas">
+              <button
+                className="btn btn-sm btn-outline ns-nav-cta-btn"
+                onClick={onJoin}
+                aria-label="Join as Member"
+              >
+                Join
+              </button>
 
-  <BookmarkToggle onToggle={onToggleBookmarks} />
+              <button
+                className="btn btn-sm btn-primary ns-nav-cta-btn"
+                onClick={onApply}
+                aria-label="Apply for Core Team"
+              >
+                Apply
+              </button>
+            </div>
 
-  <div className="ns-nav-ctas">
-    <button
-      className="btn btn-sm btn-outline ns-nav-cta-btn"
-      onClick={onJoin}
-      aria-label="Join as Member"
-    >
-      Join
-    </button>
+            <ThemeToggle />
 
-    <button
-      className="btn btn-sm btn-primary ns-nav-cta-btn"
-      onClick={onApply}
-      aria-label="Apply for Core Team"
-    >
-      Apply
-    </button>
-  </div>
-
-  <ThemeToggle />
-
-  <button
-    className={`ns-nav-menu-toggle${menuOpen ? ' open' : ''}`}
-    onClick={() => compact && setMenuOpen(open => !open)}
-    aria-label="Toggle navigation menu"
-    aria-expanded={menuOpen}
-  >
-    <span />
-    <span />
-    <span />
-  </button>
-</div>
+            <button
+              className={`ns-nav-menu-toggle${menuOpen ? ' open' : ''}`}
+              onClick={() => compact && setMenuOpen(open => !open)}
+              aria-label="Toggle navigation menu"
+              aria-expanded={menuOpen}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+          </div>
         </div>
       </div>
     </nav>
