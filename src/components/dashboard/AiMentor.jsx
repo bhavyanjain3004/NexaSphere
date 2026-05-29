@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import apiClient from '../../utils/apiClient.js';
 
 export default function AiMentor() {
   const [code, setCode] = useState('');
@@ -13,14 +14,11 @@ export default function AiMentor() {
 
     try {
       const base = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
-      const res = await fetch(`${base}/ai/review`, {
+      const data = await apiClient(`${base}/ai/review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, language })
       });
-      
-      if (!res.ok) throw new Error('AI failed to respond');
-      const data = await res.json();
       setResult(data);
     } catch (err) {
       console.error(err);

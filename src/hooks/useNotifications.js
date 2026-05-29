@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import apiClient from '../utils/apiClient.js';
 import socketClient from '../utils/socketClient';
+import { buildUrl, getApiBase, getSocketServerUrl } from '../utils/runtimeConfig';
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState([]);
@@ -14,8 +16,7 @@ export function useNotifications() {
     // Fetch persisted notifications from server (if available)
     (async () => {
       try {
-        const base = import.meta?.env?.VITE_API_BASE || '';
-        const res = await fetch(base + '/api/notifications');
+        const res = await fetch(buildUrl(getApiBase(), '/api/notifications'));
         if (res.ok) {
           const json = await res.json();
           if (isMounted && Array.isArray(json.notifications)) setNotifications(json.notifications);
@@ -26,8 +27,11 @@ export function useNotifications() {
       }
     })();
 
-    const base = (import.meta?.env?.VITE_API_BASE || window.location.origin).replace(/\/+$/, '');
+    const base = getSocketServerUrl();
     const socket = socketClient.initializeSocket(base);
+    if (!socket) {
+      return undefined;
+    }
 
     // Identify user if logged in (for personalized notifications)
     const storedUser = localStorage.getItem('ns_user');
@@ -142,7 +146,7 @@ export function useNotifications() {
     (async () => {
       try {
         const base = import.meta?.env?.VITE_API_BASE || '';
-        await fetch(base + '/api/notifications/mark-read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+        await apiClient(base + '/api/notifications/mark-read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
       } catch (e) {}
     })();
   }, []);
@@ -152,7 +156,7 @@ export function useNotifications() {
     (async () => {
       try {
         const base = import.meta?.env?.VITE_API_BASE || '';
-        await fetch(base + '/api/notifications/mark-all-read', { method: 'POST' });
+        await apiClient(base + '/api/notifications/mark-all-read', { method: 'POST' });
       } catch (e) {}
     })();
   }, []);
@@ -162,7 +166,7 @@ export function useNotifications() {
     (async () => {
       try {
         const base = import.meta?.env?.VITE_API_BASE || '';
-        await fetch(base + '/api/notifications', { method: 'DELETE' });
+        await apiClient(base + '/api/notifications', { method: 'DELETE' });
       } catch (e) {}
     })();
   }, []);
