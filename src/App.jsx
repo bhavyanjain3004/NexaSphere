@@ -55,7 +55,7 @@ import { activityPages } from './data/activities/index';
 import { events as fallbackEvents } from './data/eventsData';
 import nexasphereLogo from './assets/images/logos/nexasphere-logo.png';
 
-import Terminal from './components/developer/Terminal';
+const Terminal = dynamic(() => import('./components/developer/Terminal'), { ssr: false });
 import { useDeveloperMode } from './hooks/useDeveloperMode';
 
 import { BookmarkProvider } from './context/BookmarkContext';
