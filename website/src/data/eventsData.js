@@ -15,10 +15,11 @@ export const events = [
       "NexaSphere's inaugural Knowledge Sharing Session — an interactive peer-to-peer learning event where members presented on the Impact of AI, fostering curiosity, collaboration, and community building.",
     status: 'completed',
     icon: 'Brain',
-    category: 'workshop',
+    category: 'kss',
     tags: ['AI', 'Learning', 'Community'],
     location: 'Conference Hall',
-    capacity: 50
+    capacity: 50,
+    gradientColors: ['#6b21a8', '#7c3aed', '#a855f7'],
   },
   {
     id: 2,
@@ -34,7 +35,8 @@ export const events = [
     category: 'workshop',
     tags: ['Git', 'GitHub', 'Workshop'],
     location: 'Computer Lab, CSE Block',
-    capacity: 30
+    capacity: 30,
+    gradientColors: ['#0369a1', '#0ea5e9', '#38bdf8'],
   },
   {
     id: 3,
@@ -49,7 +51,8 @@ export const events = [
     category: 'hackathon',
     tags: ['Hackathon', 'Coding', 'Innovation', 'Prizes'],
     location: 'Main Auditorium',
-    capacity: 100
+    capacity: 100,
+    gradientColors: ['#b91c1c', '#dc2626', '#f87171'],
   },
   {
     id: 4,
@@ -64,7 +67,8 @@ export const events = [
     category: 'debate',
     tags: ['Debate', 'AI', 'Critical Thinking'],
     location: 'Seminar Room 203',
-    capacity: 40
+    capacity: 40,
+    gradientColors: ['#a16207', '#ca8a04', '#facc15'],
   },
   {
     id: 5,
@@ -79,7 +83,8 @@ export const events = [
     category: 'opensource',
     tags: ['Open Source', 'Git', 'GitHub', 'First PR'],
     location: 'Computer Lab',
-    capacity: 35
+    capacity: 50,
+    gradientColors: ['#1e40af', '#3b82f6', '#93c5fd'],
   },
   {
     id: 6,
@@ -94,7 +99,8 @@ export const events = [
     category: 'workshop',
     tags: ['AI', 'Prompt Engineering', 'Generative AI'],
     location: 'Online (Zoom)',
-    capacity: 100
+    capacity: 100,
+    gradientColors: ['#7e22ce', '#9333ea', '#c084fc'],
   },
   {
     id: 7,

@@ -2,6 +2,16 @@ import { useEffect } from "react";
 import { DynamicIcon } from "../../shared/Icons";
 
 export default function EventsSection({ onEventClick, events = [] }) {
+  const buildGradient = (ev) => {
+    if (ev.gradientColors?.length > 1) {
+      return `linear-gradient(135deg, ${ev.gradientColors.join(', ')})`;
+    }
+    if (ev.gradientColors?.length === 1) {
+      return `linear-gradient(135deg, ${ev.gradientColors[0]}, ${ev.gradientColors[0]}88)`;
+    }
+    return null;
+  };
+
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => {
@@ -71,6 +81,8 @@ export default function EventsSection({ onEventClick, events = [] }) {
         <div className="events-timeline">
           {sortedEvents.map((ev, i) => {
             const hasDetailPage = !!ev.hasDetailPage;
+            const dynamicGradient = buildGradient(ev);
+            const glowColor = ev.gradientColors?.[0] || null;
             return (
               <div className="timeline-item" key={ev.id}>
                 <div
@@ -82,14 +94,18 @@ export default function EventsSection({ onEventClick, events = [] }) {
                     animationDelay: `${i * 0.11}s`,
                     cursor: hasDetailPage ? "pointer" : "default",
                     transition: "all .28s ease",
+                    ...(dynamicGradient ? {
+                      position: "relative",
+                      overflow: "hidden",
+                      borderColor: "transparent",
+                    } : {}),
                   }}
                   onClick={hasDetailPage ? () => onEventClick?.(ev) : undefined}
                   onMouseEnter={
                     hasDetailPage
                       ? (e) => {
-                          e.currentTarget.style.borderColor = "var(--c1b)";
-                          e.currentTarget.style.boxShadow =
-                            "0 6px 24px var(--c1g)";
+                          e.currentTarget.style.borderColor = glowColor || "var(--c1b)";
+                          e.currentTarget.style.boxShadow = `0 6px 24px ${glowColor ? glowColor + "44" : "var(--c1g)"}`;
                           e.currentTarget.style.transform = "translateY(-3px)";
                         }
                       : undefined
@@ -97,13 +113,45 @@ export default function EventsSection({ onEventClick, events = [] }) {
                   onMouseLeave={
                     hasDetailPage
                       ? (e) => {
-                          e.currentTarget.style.borderColor = "";
+                          e.currentTarget.style.borderColor = dynamicGradient ? "transparent" : "";
                           e.currentTarget.style.boxShadow = "";
                           e.currentTarget.style.transform = "";
                         }
                       : undefined
                   }
                 >
+                  {dynamicGradient && (
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        borderRadius: "inherit",
+                        padding: "1px",
+                        background: dynamicGradient,
+                        WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                        WebkitMaskComposite: "xor",
+                        maskComposite: "exclude",
+                        opacity: 0.6,
+                        pointerEvents: "none",
+                        transition: "opacity 0.3s",
+                      }}
+                    />
+                  )}
+                  {dynamicGradient && (
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        inset: -8,
+                        background: dynamicGradient,
+                        filter: "blur(16px)",
+                        opacity: 0.12,
+                        pointerEvents: "none",
+                        transition: "opacity 0.3s",
+                      }}
+                    />
+                  )}
                   <div
                     className="timeline-event-name"
                     style={{

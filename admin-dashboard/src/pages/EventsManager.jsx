@@ -103,7 +103,9 @@ export function EventsManager() {
                 <div>
                   <div className="item-name">{event.name}</div>
                   <div className="item-meta">
-                    {event.dateText} {event.location && `· ${event.location}`}
+                    {event.dateText}
+                    {event.category && <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 8, background: 'var(--c2a)', color: 'var(--c2)', fontSize: '0.7rem', fontWeight: 600 }}>{event.category}</span>}
+                    {event.location && ` · ${event.location}`}
                   </div>
                 </div>
               </div>

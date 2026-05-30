@@ -14,6 +14,16 @@ export default function EventsPage({
   const [view, setView] = useState("timeline");
   const [recommendationView, setRecommendationView] = useState(false);
 
+  const buildGradient = (ev) => {
+    if (ev.gradientColors?.length > 1) {
+      return `linear-gradient(135deg, ${ev.gradientColors.join(', ')})`;
+    }
+    if (ev.gradientColors?.length === 1) {
+      return `linear-gradient(135deg, ${ev.gradientColors[0]}, ${ev.gradientColors[0]}88)`;
+    }
+    return null;
+  };
+
   const now = Date.now();
   const parseDate = (ev) => {
     const raw = ev.dateText ?? ev.date ?? "";
@@ -247,6 +257,8 @@ export default function EventsPage({
           <div className="events-timeline ns-reveal">
             {sortedEvents.map((ev, i) => {
               const hasDetailPage = !!ev.hasDetailPage;
+              const dynamicGradient = buildGradient(ev);
+              const glowColor = ev.gradientColors?.[0] || null;
               return (
                 <div className="timeline-item" key={ev.id}>
                   <div
@@ -256,33 +268,66 @@ export default function EventsPage({
                     className={`timeline-card shimmer ${i % 2 === 0 ? "pop-left" : "pop-right"}`}
                     style={{
                       animationDelay: `${i * 0.11}s`,
-                      /* cursor: pointer ensures touch/mobile devices get proper feedback
-                         even when the global custom cursor sets cursor:none on desktop */
                       cursor: hasDetailPage ? "pointer" : "default",
                       transition: "all .28s ease",
+                      ...(dynamicGradient ? {
+                        position: "relative",
+                        overflow: "hidden",
+                        borderColor: "transparent",
+                      } : {}),
                     }}
                     onClick={hasDetailPage ? () => onEventClick(ev) : undefined}
                     onMouseEnter={
                       hasDetailPage
                         ? (e) => {
-                            e.currentTarget.style.borderColor = "var(--c1b)";
-                            e.currentTarget.style.boxShadow =
-                              "0 6px 24px var(--c1g)";
-                            e.currentTarget.style.transform =
-                              "translateY(-3px)";
+                            e.currentTarget.style.borderColor = glowColor || "var(--c1b)";
+                            e.currentTarget.style.boxShadow = `0 6px 24px ${glowColor ? glowColor + "44" : "var(--c1g)"}`;
+                            e.currentTarget.style.transform = "translateY(-3px)";
                           }
                         : undefined
                     }
                     onMouseLeave={
                       hasDetailPage
                         ? (e) => {
-                            e.currentTarget.style.borderColor = "";
+                            e.currentTarget.style.borderColor = dynamicGradient ? "transparent" : "";
                             e.currentTarget.style.boxShadow = "";
                             e.currentTarget.style.transform = "";
                           }
                         : undefined
                     }
                   >
+                    {dynamicGradient && (
+                      <div
+                        aria-hidden="true"
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          borderRadius: "inherit",
+                          padding: "1px",
+                          background: dynamicGradient,
+                          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                          WebkitMaskComposite: "xor",
+                          maskComposite: "exclude",
+                          opacity: 0.6,
+                          pointerEvents: "none",
+                          transition: "opacity 0.3s",
+                        }}
+                      />
+                    )}
+                    {dynamicGradient && (
+                      <div
+                        aria-hidden="true"
+                        style={{
+                          position: "absolute",
+                          inset: -8,
+                          background: dynamicGradient,
+                          filter: "blur(16px)",
+                          opacity: 0.12,
+                          pointerEvents: "none",
+                          transition: "opacity 0.3s",
+                        }}
+                      />
+                    )}
                     <div
                       className="timeline-event-name"
                       style={{

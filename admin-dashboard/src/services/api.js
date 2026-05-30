@@ -89,6 +89,11 @@ const getDb = (key, defaultVal) => {
           status: "completed",
           icon: "Brain",
           tags: ["AI", "Learning"],
+          category: "kss",
+          location: "Conference Hall",
+          capacity: 50,
+          hasDetailPage: true,
+          gradientColors: ["#6b21a8", "#7c3aed", "#a855f7"],
         },
         {
           id: "2",
@@ -99,6 +104,11 @@ const getDb = (key, defaultVal) => {
           status: "upcoming",
           icon: "Wrench",
           tags: ["Git", "GitHub"],
+          category: "workshop",
+          location: "Computer Lab",
+          capacity: 30,
+          hasDetailPage: true,
+          gradientColors: ["#0369a1", "#0ea5e9"],
         },
       ];
       setDb(key, initialEvents);
