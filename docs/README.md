@@ -8,9 +8,9 @@ Welcome to the NexaSphere documentation. Use the links below to find what you ne
 
 | Document | Description |
 |---|---|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture, data flow, environment variables reference |
-| [SETUP.md](./SETUP.md) | Step-by-step local development setup + troubleshooting |
-| [WORKFLOWS.md](./WORKFLOWS.md) | All 39 GitHub Actions workflows — triggers, logic, labels |
+| [ARCHITECTURE.md](./guides/ARCHITECTURE.md) | System architecture, data flow, environment variables reference |
+| [SETUP.md](./guides/SETUP.md) | Step-by-step local development setup + troubleshooting |
+| [WORKFLOWS.md](./guides/WORKFLOWS.md) | All 39 GitHub Actions workflows — triggers, logic, labels |
 
 ## 🔗 Quick Links (Root)
 
