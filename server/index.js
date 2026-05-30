@@ -1597,9 +1597,10 @@ app.post("/api/notifications/unsubscribe", notificationRateLimiter, (req, res) =
 // Server-side notifications API (simple in-memory store)
 import notificationsService from "./services/notificationsService.js";
 
-app.get("/api/notifications", adminAuth, notificationRateLimiter, (req, res) => {
+app.get("/api/notifications", (req, res) => {
   try {
-    const userId = req.adminSession?.username || "global";
+    // If user id provided via query or auth, use that; otherwise global
+    const userId = req.query.userId || "global";
     const list = notificationsService.getNotifications(userId);
     return res.json({ notifications: list });
   } catch (err) {
@@ -1613,9 +1614,9 @@ app.post(
   notificationRateLimiter,
   (req, res) => {
     try {
-      const { id } = req.body || {};
+      const { id, userId } = req.body || {};
       if (!id) return res.status(400).json({ error: "id required" });
-      const uid = req.adminSession?.username || "global";
+      const uid = userId || "global";
       const ok = notificationsService.markAsRead(uid, id);
       return res.json({ success: ok });
     } catch (err) {
@@ -1630,8 +1631,8 @@ app.post(
   notificationRateLimiter,
   (req, res) => {
     try {
-      const uid = req.adminSession?.username || "global";
-      notificationsService.markAllAsRead(uid);
+      const { userId } = req.body || {};
+      notificationsService.markAllAsRead(userId || "global");
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -1646,8 +1647,8 @@ app.delete(
   (req, res) => {
     try {
       const id = req.params.id;
-      const uid = req.adminSession?.username || "global";
-      const removed = notificationsService.removeNotification(uid, id);
+      const userId = req.query.userId || "global";
+      const removed = notificationsService.removeNotification(userId, id);
       if (!removed)
         return res.status(404).json({ error: "Notification not found" });
       return res.json({ success: true });
@@ -1664,8 +1665,8 @@ app.delete(
   notificationRateLimiter,
   (req, res) => {
     try {
-      const uid = req.adminSession?.username || "global";
-      notificationsService.clearAll(uid);
+      const userId = req.query.userId || "global";
+      notificationsService.clearAll(userId);
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -1680,12 +1681,12 @@ app.post(
   notificationRateLimiter,
   (req, res) => {
     try {
-      const { title, message, type, link } = req.body || {};
+      const { userId, title, message, type, link } = req.body || {};
       if (!title || !message)
         return res
           .status(400)
           .json({ error: "title and message are required" });
-      const note = notificationsService.addNotification(req.adminSession?.username || "global", {
+      const note = notificationsService.addNotification(userId || "global", {
         title,
         message,
         type,
