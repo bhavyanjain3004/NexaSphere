@@ -56,7 +56,7 @@ describe('HeroSection Component', () => {
     );
     const teamBtns = screen.getAllByText('Core Team');
     fireEvent.click(teamBtns[0]);
-    expect(mockOnTabChange).toHaveBeenCalledWith('Team');
+    expect(mockOnTabChange).toHaveBeenCalledWith('Core Team');
   });
 
   it('renders stats bar after delay', async () => {
