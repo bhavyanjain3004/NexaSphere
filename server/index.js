@@ -1228,9 +1228,6 @@ app.get('/healthz', async (req, res) => {
 // Event channels/content
 app.get('/api/content/events', eventsController.listEvents);
 app.get('/api/content/activity-events/:activityKey', activityEventsController.listActivityEvents);
-app.post('/api/content/activity-events/:activityKey', activityEventsController.addActivityEvent);
-app.delete('/api/content/activity-events/:activityKey/:eventId', activityEventsController.deleteActivityEvent);
-
 // Admin Auth Endpoints
 app.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
 app.post('/api/admin/logout', adminAuthMiddleware.logout);
@@ -1432,17 +1429,6 @@ app.post('/api/notifications/unsubscribe', (req, res) => {
     const { subscription } = req.body;
     if (subscription) pushSubscriptions.delete(JSON.stringify(subscription));
     return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// Server side notifications store api
-app.get('/api/notifications', (req, res) => {
-  try {
-    const userId = req.query.userId || 'global';
-    const list = notificationsService.getNotifications(userId);
-    return res.json({ notifications: list });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
