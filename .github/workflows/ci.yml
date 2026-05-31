@@ -22,7 +22,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
+        run: rm -rf node_modules package-lock.json && npm install
 
       - name: Build (production)
         run: npm run build --workspace=website
