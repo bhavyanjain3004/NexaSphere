@@ -21,7 +21,7 @@ function validateSingleField(
     isValid = result.current.validateForm([fieldName]);
   });
 
-  return result.current.errors;
+  return result.current.errors as any;
 }
 
 // ---------------------------------------------------------------------------
