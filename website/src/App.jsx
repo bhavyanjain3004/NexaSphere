@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useLayoutEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, useLayoutEffect, lazy, Suspense, memo } from 'react';
 import {
   BrowserRouter,
   Routes,
@@ -31,8 +31,6 @@ import EventsSection from './pages/events/EventsSection';
 import AboutSection from './pages/about/AboutSection';
 import TeamSection from './pages/team/TeamSection';
 import Footer from './shared/Footer';
-import ActivityDetailPage from './pages/activities/ActivityDetailPage';
-import EventDetailPage from './pages/events/EventDetailPage';
 import CinematicOpening from './shared/CinematicOpening';
 import Chatbot from './shared/Chatbot';
 import {
@@ -45,11 +43,6 @@ import {
   useGlobalMouseParallax,
   useMagneticCards,
 } from './shared/MotionLayer';
-import ActivitiesPage from './pages/activities/ActivitiesPage';
-import EventsPage from './pages/events/EventsPage';
-import AboutPage from './pages/about/AboutPage';
-import TeamPage from './pages/team/TeamPage';
-import ContactPage from './pages/contact/ContactPage';
 import apiClient from './utils/apiClient.js';
 import {
   getLocalEvents,
@@ -59,15 +52,6 @@ import {
 } from './utils/publicContentStore.js';
 import { initializeSocket, on, off, joinRoom } from './utils/socketClient.js';
 import NotFoundPage from './pages/NotFoundPage';
-import RoadmapsPage from './pages/roadmaps/RoadmapsPage';
-import ProjectsPage from './pages/projects/ProjectsPage';
-import CertificateVerifyPage from './pages/certificates/CertificateVerifyPage';
-import CollabPage from './pages/collab/CollabPage';
-import PortfolioBuilder from './components/portfolio/PortfolioBuilder';
-import PublicPortfolio from './pages/portfolio/PublicPortfolio';
-import DashboardPage from './pages/dashboard/DashboardPage';
-import AnalyticsPage from './pages/analytics/AnalyticsPage';
-import WorkspacePage from './pages/workspace/WorkspacePage';
 
 import { activityPages } from './data/activities/index';
 import { events as fallbackEvents } from './data/eventsData';
@@ -91,12 +75,28 @@ import UpdatePrompt from './components/pwa/UpdatePrompt.jsx';
 const RecruitmentPage = lazy(() => import('./pages/recruitment/RecruitmentPage'));
 const MembershipPage = lazy(() => import('./pages/membership/MembershipPage'));
 const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
+const ActivitiesPage = lazy(() => import('./pages/activities/ActivitiesPage'));
+const ActivityDetailPage = lazy(() => import('./pages/activities/ActivityDetailPage'));
+const EventsPage = lazy(() => import('./pages/events/EventsPage'));
+const EventDetailPage = lazy(() => import('./pages/events/EventDetailPage'));
+const AboutPage = lazy(() => import('./pages/about/AboutPage'));
+const TeamPage = lazy(() => import('./pages/team/TeamPage'));
+const ContactPage = lazy(() => import('./pages/contact/ContactPage'));
+const RoadmapsPage = lazy(() => import('./pages/roadmaps/RoadmapsPage'));
+const ProjectsPage = lazy(() => import('./pages/projects/ProjectsPage'));
+const CertificateVerifyPage = lazy(() => import('./pages/certificates/CertificateVerifyPage'));
+const CollabPage = lazy(() => import('./pages/collab/CollabPage'));
+const PortfolioBuilder = lazy(() => import('./components/portfolio/PortfolioBuilder'));
+const PublicPortfolio = lazy(() => import('./pages/portfolio/PublicPortfolio'));
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const AnalyticsPage = lazy(() => import('./pages/analytics/AnalyticsPage'));
+const WorkspacePage = lazy(() => import('./pages/workspace/WorkspacePage'));
 
 const MNH = 88,
   DNH = 64;
 
 /* ── Page wipe transition ── */
-function Wipe({ on: wipeOn, ph }) {
+const Wipe = memo(function Wipe({ on: wipeOn, ph }) {
   if (!wipeOn) return null;
   return (
     <>
@@ -150,10 +150,10 @@ function Wipe({ on: wipeOn, ph }) {
       )}
     </>
   );
-}
+});
 
 /* ── Page enter animation ── */
-function PageIn({ children, k }) {
+const PageIn = memo(function PageIn({ children, k }) {
   const [r, setR] = useState(false);
   useLayoutEffect(() => {
     let rafOne = 0;
@@ -180,7 +180,7 @@ function PageIn({ children, k }) {
       {children}
     </div>
   );
-}
+});
 
 /* ── Anti-gravity orb cursor ── */
 function Cursor() {

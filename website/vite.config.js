@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
   // Aliases for next/image and next/dynamic shims used in the website source
@@ -21,6 +22,12 @@ export default defineConfig({
       authToken: process.env.SENTRY_AUTH_TOKEN,
       // Don't fail build if Sentry token is not set
       silent: true,
+    }),
+    process.env.ANALYZE === 'true' && visualizer({
+      filename: 'bundle-report.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
     }),
     VitePWA({
       disable: process.env.DISABLE_PWA === 'true',
@@ -57,7 +64,7 @@ export default defineConfig({
     include: ['idb-keyval', 'dompurify'],
   },
   build: {
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 400,
     rollupOptions: {
       // Ensure all deps are bundled (not externalized)
       external: [],

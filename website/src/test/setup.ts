@@ -46,11 +46,13 @@ if (typeof window.localStorage?.getItem !== 'function') {
 }
 
 // Mock IntersectionObserver
-global.IntersectionObserver = vi.fn(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-})) as any;
+class MockIntersectionObserver {
+  constructor() {}
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+global.IntersectionObserver = MockIntersectionObserver as any;
 
 // Suppress console errors in tests unless explicitly checking them
 const originalError = console.error;

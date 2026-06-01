@@ -108,7 +108,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
           style={{ cursor: 'pointer' }}
           aria-label="Go to homepage"
         >
-          <img src={BRAND_LOGO_ICON} alt="NexaSphere" className="ns-mobile-logo-ns" />
+          <img src={BRAND_LOGO_ICON} alt="NexaSphere" className="ns-mobile-logo-ns" loading="lazy" width="28" height="28" />
 
           <span className="ns-mobile-brand">
             <span>NexaSphere</span>

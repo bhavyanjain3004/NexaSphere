@@ -71,6 +71,8 @@ function ModalContent({ member, onClose }) {
           src={(!member.photo || imgError) ? 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(member.name) + '&backgroundColor=7b6fff&textColor=ffffff' : member.photo} 
           alt={member.name} 
           className="modal-photo" 
+          loading="lazy"
+          width="120" height="120"
           onError={() => setImgError(true)}
         />
 
