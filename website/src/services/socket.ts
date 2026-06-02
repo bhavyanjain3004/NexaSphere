@@ -1,11 +1,15 @@
 import { io, Socket } from 'socket.io-client';
+import { getSocketServerUrl } from '../utils/runtimeConfig';
 
 // Keep a singleton instance
 let socketInstance: Socket | null = null;
 let connectionUrl: string = '';
 
 export const initializeSocket = (
-  url: string = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  // Uses getSocketServerUrl() from runtimeConfig which correctly returns
+  // empty string in production when unconfigured instead of falling back
+  // to a hardcoded localhost URL that doesn't exist in deployed environments.
+  url: string = getSocketServerUrl()
 ): Socket => {
   if (!socketInstance || (connectionUrl && connectionUrl !== url)) {
     if (socketInstance) {
