@@ -1,7 +1,7 @@
 import logger from '../utils/logger.js';
 import { getPublicAppUrl } from '../utils/publicAppUrl.js';
 
-const adminClients = new Set();
+const adminClients = new Map();
 const MAX_SSE_CLIENTS = Math.max(1, parseInt(process.env.MAX_SSE_CLIENTS || '200', 10) || 200);
 const HEARTBEAT_INTERVAL_MS = Math.max(
   5_000,
@@ -41,7 +41,7 @@ export function addSSEClient(res) {
     return;
   }
 
-  adminClients.add(res);
+  adminClients.set(res, Date.now());
   logger.info('SSE client connected', { totalClients: adminClients.size });
 
   // Start the heartbeat interval immediately upon successful connection
@@ -75,7 +75,7 @@ export function broadcastSSEEvent(eventName, data) {
   });
   const message = `event: ${eventName}\ndata: ${eventData}\n\n`;
 
-  adminClients.forEach((client) => {
+  adminClients.forEach((joined, client) => {
     try {
       const ok = client.write(message);
       if (!ok) {
