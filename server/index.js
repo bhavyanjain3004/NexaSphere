@@ -61,7 +61,148 @@ const allowedOrigins = process.env.CORS_ORIGIN.split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
-app.use(helmet());
+```js id="kpxvgr"
+app.use(
+  helmet({
+
+    // Prevent MIME sniffing
+    noSniff: true,
+
+    // Prevent clickjacking
+    frameguard: {
+      action: "deny",
+    },
+
+    // Hide X-Powered-By
+    hidePoweredBy: true,
+
+    // Disable old IE XSS filter
+    xssFilter: false,
+
+    // Restrict referrer leakage
+    referrerPolicy: {
+      policy: "strict-origin-when-cross-origin",
+    },
+
+    // Enforce HTTPS in production
+    hsts: env.NODE_ENV === "production"
+      ? {
+          maxAge: 31536000,
+          includeSubDomains: true,
+          preload: true,
+        }
+      : false,
+
+    // Strict Content Security Policy
+    contentSecurityPolicy: {
+
+      useDefaults: false,
+
+      directives: {
+
+        // Default restriction
+        defaultSrc: ["'self'"],
+
+        // Prevent inline scripts + third-party execution
+        scriptSrc: [
+          "'self'",
+        ],
+
+        // Allow styles from self only
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+        ],
+
+        // Images
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https:",
+        ],
+
+        // Fonts
+        fontSrc: [
+          "'self'",
+          "https:",
+          "data:",
+        ],
+
+        // API/WebSocket connections
+        connectSrc: [
+          "'self'",
+          "https:",
+          "wss:",
+        ],
+
+        // Block Flash/object/embed
+        objectSrc: ["'none'"],
+
+        // Prevent <base> hijacking
+        baseUri: ["'self'"],
+
+        // Prevent iframe embedding
+        frameAncestors: ["'none'"],
+
+        // Restrict forms
+        formAction: ["'self'"],
+
+        // Prevent mixed content
+        upgradeInsecureRequests: [],
+
+        // Restrict workers
+        workerSrc: [
+          "'self'",
+          "blob:",
+        ],
+
+        // Restrict manifests
+        manifestSrc: ["'self'"],
+
+        // Restrict media
+        mediaSrc: ["'self'"],
+
+        // Restrict frames
+        frameSrc: ["'none'"],
+
+        // Restrict child browsing contexts
+        childSrc: ["'none'"],
+      },
+    },
+
+    // Safer cross-origin behavior
+    crossOriginEmbedderPolicy: false,
+
+    crossOriginOpenerPolicy: {
+      policy: "same-origin",
+    },
+
+    crossOriginResourcePolicy: {
+      policy: "same-origin",
+    },
+
+    // Disable DNS prefetching
+    dnsPrefetchControl: {
+      allow: false,
+    },
+
+    // Prevent browser feature abuse
+    permissionsPolicy: {
+      features: {
+        geolocation: [],
+        microphone: [],
+        camera: [],
+        payment: [],
+        usb: [],
+        magnetometer: [],
+        gyroscope: [],
+      },
+    },
+  })
+);
+```
+
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 app.use(express.json({ limit: '512kb' }));
