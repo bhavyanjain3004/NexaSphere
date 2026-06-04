@@ -180,6 +180,28 @@ async function requireAdmin(req, res, next) {
   }
 }
 
+function requireRole(allowedRoles) {
+  if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) {
+    throw new Error('requireRole must be initialized with a non-empty array of allowed roles');
+  }
+
+  return async (req, res, next) => {
+    // Ensure the request is already authenticated (e.g. by requireAdmin)
+    if (!req.adminSession) {
+      return res.status(401).json({ error: 'Unauthorized: No session found' });
+    }
+    
+    // Assume role is attached to the session metadata, defaulting to 'user' to prevent privilege escalation
+    const userRole = req.adminSession.metadata?.role || 'user';
+    
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient privileges' });
+    }
+    
+    next();
+  };
+}
+
 async function login(req, res) {
   try {
     const u = String(req.body?.username || '').trim();
@@ -249,6 +271,7 @@ export const adminAuthMiddleware = {
   login,
   logout,
   requireAdmin,
+  requireRole,
   // Private test exports for auditing & validation
   _getLoginAttemptsMapSize: () => loginAttemptsByIp.size,
   _clearAllLoginAttempts: () => loginAttemptsByIp.clear(),

@@ -71,7 +71,25 @@ const allowedOrigins = process.env.CORS_ORIGIN.split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: [
+        "'self'",
+        process.env.FRONTEND_URL || "http://localhost:5173",
+        `wss://${process.env.DOMAIN || 'localhost'}`,
+      ],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 app.use(tracingMiddleware);
@@ -194,7 +212,11 @@ app.get('/healthz', async (req, res) => {
 // Event channels/content
 app.get('/api/content/events', eventsController.listEvents);
 app.get('/api/content/activity-events/:activityKey', activityEventsController.listActivityEvents);
-app.post('/api/content/activity-events/:activityKey', protectedActionRateLimiter, activityEventsController.addActivityEvent);
+app.post(
+  '/api/content/activity-events/:activityKey',
+  protectedActionRateLimiter,
+  activityEventsController.addActivityEvent
+);
 app.delete(
   '/api/content/activity-events/:activityKey/:eventId',
   protectedActionRateLimiter,
@@ -446,19 +468,22 @@ const failedPasskeyAttemptsByUsername = new Map();
 // Periodic sweep every 30 minutes: remove entries whose lockout period has
 // expired and whose attempt count has already been reset to 0, so they do
 // not accumulate for keys that are never visited again.
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of failedPasskeyAttemptsByIp) {
-    if (entry.count === 0 && now > entry.lockoutUntil) {
-      failedPasskeyAttemptsByIp.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, entry] of failedPasskeyAttemptsByIp) {
+      if (entry.count === 0 && now > entry.lockoutUntil) {
+        failedPasskeyAttemptsByIp.delete(key);
+      }
     }
-  }
-  for (const [key, entry] of failedPasskeyAttemptsByUsername) {
-    if (now > entry.lockoutUntil) {
-      failedPasskeyAttemptsByUsername.delete(key);
+    for (const [key, entry] of failedPasskeyAttemptsByUsername) {
+      if (now > entry.lockoutUntil) {
+        failedPasskeyAttemptsByUsername.delete(key);
+      }
     }
-  }
-}, 30 * 60 * 1000).unref();
+  },
+  30 * 60 * 1000
+).unref();
 
 function checkPasskeyLockout(username, ip) {
   const ipKey = String(ip || 'unknown');
@@ -493,7 +518,10 @@ function recordFailedPasskeyAttempt(username, ip) {
   const userKey = String(username || '').toLowerCase();
 
   // IP tracking
-  if (!failedPasskeyAttemptsByIp.has(ipKey) && failedPasskeyAttemptsByIp.size >= MAX_PASSKEY_TRACKED_KEYS) {
+  if (
+    !failedPasskeyAttemptsByIp.has(ipKey) &&
+    failedPasskeyAttemptsByIp.size >= MAX_PASSKEY_TRACKED_KEYS
+  ) {
     failedPasskeyAttemptsByIp.delete(failedPasskeyAttemptsByIp.keys().next().value);
   }
   const ipEntry = failedPasskeyAttemptsByIp.get(ipKey) || { count: 0, lockoutUntil: 0 };
@@ -505,7 +533,10 @@ function recordFailedPasskeyAttempt(username, ip) {
   failedPasskeyAttemptsByIp.set(ipKey, ipEntry);
 
   // Username tracking (Exponential backoff)
-  if (!failedPasskeyAttemptsByUsername.has(userKey) && failedPasskeyAttemptsByUsername.size >= MAX_PASSKEY_TRACKED_KEYS) {
+  if (
+    !failedPasskeyAttemptsByUsername.has(userKey) &&
+    failedPasskeyAttemptsByUsername.size >= MAX_PASSKEY_TRACKED_KEYS
+  ) {
     failedPasskeyAttemptsByUsername.delete(failedPasskeyAttemptsByUsername.keys().next().value);
   }
   const userEntry = failedPasskeyAttemptsByUsername.get(userKey) || { count: 0, lockoutUntil: 0 };
