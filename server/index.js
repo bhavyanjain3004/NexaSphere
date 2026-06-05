@@ -9,6 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { adminAuthMiddleware } from './middleware/adminAuthMiddleware.js';
 import analyticsRouter from './routes/analytics.js';
+import apiRouter from './routes/api.js';
 import { initializeSocketIO } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
 import documentationRouter from './routes/documentation.js';
@@ -136,6 +137,7 @@ app.get('/api/health', (_req, res) => {
 // Mount monitoring + API documentation routes
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api', documentationRouter);
+app.use('/', apiRouter);
 
 const adminAuth = adminAuthMiddleware.requireAdmin;
 

@@ -21,10 +21,42 @@ export function useNotifications() {
     // Fetch persisted notifications from server (if available)
     (async () => {
       try {
-        const res = await fetch(buildUrl(getApiBase(), '/api/notifications'));
-        if (res.ok) {
-          const json = await res.json();
-          if (isMounted && Array.isArray(json.notifications)) setNotifications(json.notifications);
+        const storedUser = localStorage.getItem('ns_user');
+        let userId = null;
+        if (storedUser) {
+          try {
+            const user = JSON.parse(storedUser);
+            userId = user?.id || user?.userId;
+          } catch (e) {
+            console.error('Error parsing stored user info', e);
+          }
+        }
+
+        const fetchUrls = [buildUrl(getApiBase(), '/api/notifications')];
+        if (userId) {
+          fetchUrls.push(buildUrl(getApiBase(), `/api/notifications?userId=${userId}`));
+        }
+
+        const responses = await Promise.all(
+          fetchUrls.map((url) =>
+            fetch(url).then((res) => (res.ok ? res.json() : { notifications: [] }))
+          )
+        );
+
+        if (isMounted) {
+          const allNotifications = responses.flatMap((r) => r.notifications || []);
+          // De-duplicate by unique id
+          const seen = new Set();
+          const uniqueNotifications = [];
+          for (const item of allNotifications) {
+            if (item && item.id && !seen.has(item.id)) {
+              seen.add(item.id);
+              uniqueNotifications.push(item);
+            }
+          }
+          // Sort by creation date (newest first)
+          uniqueNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setNotifications(uniqueNotifications);
         }
       } catch (err) {
         // ignore fetch errors — fallback to empty list
