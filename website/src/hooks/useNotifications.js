@@ -38,20 +38,10 @@ export function useNotifications() {
       return undefined;
     }
 
-    // Identify user if logged in (for personalized notifications)
-    const storedUser = localStorage.getItem('ns_user');
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        if (user.id || user.userId) {
-          socketClient.identifyUser(user.id || user.userId, user.email);
-          // Join authenticated user-specific channel
-          socketClient.joinRoom(`user-${user.id || user.userId}`);
-        }
-      } catch (e) {
-        console.error('Error parsing stored user info', e);
-      }
-    }
+    // Personalised socket identification (user-specific notification channel)
+    // requires an authenticated user session. The app currently has no auth
+    // system — when one is added, call socketClient.identifyUser(userId, email)
+    // and socketClient.joinRoom(`user-${userId}`) here using the session data.
 
     // Join general notification and announcement channels
     socketClient.joinRoom('notifications-room');
@@ -146,16 +136,7 @@ export function useNotifications() {
       socketClient.off('event-reminder', handleReminder);
       socketClient.off('attendance-marked', handleAttendance);
 
-      const storedUser = localStorage.getItem('ns_user');
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser);
-          if (user.id || user.userId) {
-            socketClient.leaveRoom(`user-${user.id || user.userId}`);
-          }
-        } catch (e) {}
-      }
-
+      // When auth is implemented, call socketClient.leaveRoom(`user-${userId}`) here.
       socketClient.leaveRoom('notifications-room');
       socketClient.leaveRoom('global-announcements');
 
