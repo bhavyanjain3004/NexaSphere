@@ -5,15 +5,20 @@ import {
   startAdminSessionCleanup,
 } from '../repositories/adminSessionsRepository.js';
 import crypto from 'crypto';
+
+const CONSTANT_AUTH_LENGTH = 64; // Pad all auth inputs to prevent timing leaks
+
 function safeEqual(a, b) {
   const bufA = Buffer.from(String(a));
   const bufB = Buffer.from(String(b));
+  
+  // Pad both buffers to constant length to prevent timing attacks based on input length
+  const paddedA = Buffer.alloc(CONSTANT_AUTH_LENGTH);
+  const paddedB = Buffer.alloc(CONSTANT_AUTH_LENGTH);
+  bufA.copy(paddedA);
+  bufB.copy(paddedB);
 
-  if (bufA.length !== bufB.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(bufA, bufB);
+  return crypto.timingSafeEqual(paddedA, paddedB);
 }
 const ADMIN_USERNAME = requiredEnv('ADMIN_USERNAME');
 const ADMIN_PASSWORD = requiredStrongPassword('ADMIN_PASSWORD');
@@ -175,6 +180,28 @@ async function requireAdmin(req, res, next) {
   }
 }
 
+function requireRole(allowedRoles) {
+  if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) {
+    throw new Error('requireRole must be initialized with a non-empty array of allowed roles');
+  }
+
+  return async (req, res, next) => {
+    // Ensure the request is already authenticated (e.g. by requireAdmin)
+    if (!req.adminSession) {
+      return res.status(401).json({ error: 'Unauthorized: No session found' });
+    }
+    
+    // Assume role is attached to the session metadata, defaulting to 'user' to prevent privilege escalation
+    const userRole = req.adminSession.metadata?.role || 'user';
+    
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient privileges' });
+    }
+    
+    next();
+  };
+}
+
 async function login(req, res) {
   try {
     const u = String(req.body?.username || '').trim();
@@ -244,6 +271,7 @@ export const adminAuthMiddleware = {
   login,
   logout,
   requireAdmin,
+  requireRole,
   // Private test exports for auditing & validation
   _getLoginAttemptsMapSize: () => loginAttemptsByIp.size,
   _clearAllLoginAttempts: () => loginAttemptsByIp.clear(),

@@ -20,7 +20,7 @@ const requireAdmin = adminAuthMiddleware.requireAdmin;
  * GET /api/admin/stream
  * Requires valid admin session token
  */
-router.get('/stream', requireAdmin, setupSSEHeaders, (req, res) => {
+router.get('/stream', requireAdmin, (req, res) => {
   const adminId = req.adminSession?.username;
   if (!adminId) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -28,6 +28,11 @@ router.get('/stream', requireAdmin, setupSSEHeaders, (req, res) => {
 
   logger.info('Admin connected to SSE stream', { adminId });
   addSSEClient(res, req.adminSession);
+  
+  // Initialize headers and hand off the response to the SSE service
+  setupSSEHeaders(req, res, () => {
+    addSSEClient(res);
+  });
 });
 
 /**

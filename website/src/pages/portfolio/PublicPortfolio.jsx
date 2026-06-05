@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../../utils/apiClient.js';
+import { getApiBase } from '../../utils/runtimeConfig';
 import { useCertificateExport } from '../../hooks/useCertificateExport';
 import { projectsData } from '../../data/projectsData';
 import { roadmapData } from '../../data/roadmapData';
@@ -17,8 +18,8 @@ export default function PublicPortfolio({ username, onBack }) {
     let alive = true;
     const fetchPortfolio = async () => {
       try {
-        const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
-        const url = base ? `${base}/api/portfolio/${username}` : `/api/portfolio/${username}`;
+        const base = getApiBase();
+        const url = `${base}/api/portfolio/${username}`;
 
         const data = await apiClient(url);
         if (alive) {

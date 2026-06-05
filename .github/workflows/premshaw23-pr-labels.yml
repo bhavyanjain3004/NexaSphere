@@ -1,0 +1,207 @@
+name: Premshaw23 PR Label Enforcer
+
+on:
+  pull_request:
+    types: [opened, reopened, labeled, unlabeled, synchronize]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  enforce-labels:
+    # Only enforce for PRs opened by Premshaw23
+    if: github.event.pull_request.user.login == 'Premshaw23'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check required labels
+        id: label-check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const labels = pr.labels.map(l => l.name.toLowerCase().trim());
+
+            // ── Requirement 1: Difficulty must be "intermediate" OR "advanced" ──
+            const difficultyLabels = ['intermediate', 'advanced'];
+            const hasDifficulty = difficultyLabels.some(l => labels.includes(l));
+
+            // ── Requirement 2: Must have a "quality: exceptional" label ──
+            // Normalise variations: "quality:exceptional", "quality: exceptional", etc.
+            const hasQuality = labels.some(l =>
+              l.replace(/\s/g, '') === 'quality:exceptional'
+            );
+
+            const missingDifficulty = !hasDifficulty;
+            const missingQuality = !hasQuality;
+            const allGood = hasDifficulty && hasQuality;
+
+            core.setOutput('all_good', allGood.toString());
+            core.setOutput('missing_difficulty', missingDifficulty.toString());
+            core.setOutput('missing_quality', missingQuality.toString());
+
+            console.log('Labels found:', labels);
+            console.log('Has difficulty:', hasDifficulty);
+            console.log('Has quality:', hasQuality);
+
+      # ── Ensure the "needs-labels" label exists in the repo ──────────────────
+      - name: Ensure needs-labels label exists
+        if: steps.label-check.outputs.all_good == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'needs-labels',
+              });
+            } catch (e) {
+              if (e.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: 'needs-labels',
+                  color: 'e11d48',
+                  description: 'PR is missing required labels',
+                });
+              }
+            }
+
+      # ── Add "needs-labels" label when requirements are not met ──────────────
+      - name: Add needs-labels label
+        if: steps.label-check.outputs.all_good == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const currentLabels = context.payload.pull_request.labels.map(l => l.name);
+            if (!currentLabels.includes('needs-labels')) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                labels: ['needs-labels'],
+              });
+            }
+
+      # ── Post a comment explaining what labels are missing ───────────────────
+      - name: Comment — labels missing
+        if: steps.label-check.outputs.all_good == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const missingDifficulty = '${{ steps.label-check.outputs.missing_difficulty }}' === 'true';
+            const missingQuality    = '${{ steps.label-check.outputs.missing_quality }}'    === 'true';
+
+            const lines = [
+              '## ⚠️ Missing Required Labels — @Premshaw23',
+              '',
+              'Hey @Premshaw23! Your PR is missing one or more **required labels**.',
+              'Please ask a maintainer to apply the correct labels before this PR can be reviewed.',
+              '',
+              '### Required Labels',
+              '',
+            ];
+
+            if (missingDifficulty) {
+              lines.push('❌ **Difficulty** — must have exactly one of:');
+              lines.push('  - `intermediate`');
+              lines.push('  - `advanced`');
+              lines.push('');
+            } else {
+              lines.push('✅ **Difficulty** label is present.');
+              lines.push('');
+            }
+
+            if (missingQuality) {
+              lines.push('❌ **Quality** — must have:');
+              lines.push('  - `quality: exceptional`');
+              lines.push('');
+            } else {
+              lines.push('✅ **Quality** label is present.');
+              lines.push('');
+            }
+
+            lines.push('---');
+            lines.push('_This check runs automatically for PRs from @Premshaw23. Once labels are applied, this PR will be re-validated._');
+
+            // Find and update existing bot comment if it exists, otherwise create new
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('Missing Required Labels')
+            );
+
+            const body = lines.join('\n');
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+            }
+
+      # ── All labels present: remove "needs-labels" + post approval ───────────
+      - name: Remove needs-labels label
+        if: steps.label-check.outputs.all_good == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const currentLabels = context.payload.pull_request.labels.map(l => l.name);
+            if (currentLabels.includes('needs-labels')) {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                name: 'needs-labels',
+              });
+            }
+
+      - name: Comment — labels approved
+        if: steps.label-check.outputs.all_good == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Only post if there was a previous "missing labels" comment to replace
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('Missing Required Labels')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: [
+                  '## ✅ Label Check Passed — @Premshaw23',
+                  '',
+                  'All required labels are now present on this PR:',
+                  '- ✅ Difficulty: `intermediate` or `advanced`',
+                  '- ✅ Quality: `quality: exceptional`',
+                  '',
+                  'The `needs-labels` label has been removed. This PR is ready for maintainer review! 🎉',
+                ].join('\n'),
+              });
+            }
