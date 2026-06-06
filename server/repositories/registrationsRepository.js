@@ -1,4 +1,5 @@
-import { withDb, HAS_SUPABASE } from '../storage/supabaseClient.js';
+import { withDb } from './db.js';
+import { HAS_SUPABASE } from '../storage/supabaseClient.js';
 
 export const registrationsRepository = {
   async findByEventId(eventId) {
