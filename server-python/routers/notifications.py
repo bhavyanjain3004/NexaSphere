@@ -17,10 +17,10 @@ class JoinRequestPayload(BaseModel):
 INTERNAL_SERVICE_SECRET = os.getenv("INTERNAL_SERVICE_SECRET", "")
 
 
-# FIX ISSUE 3 ONLY: Explicitly binding matching target via alias keyword
 def _verify_service_auth(
     x_service_auth: Optional[str] = Header(default=None, alias="X-Service-Auth")
 ) -> None:
+def _verify_service_auth(x_service_auth: Optional[str] = Header(default=None)) -> None:
     """Dependency that validates the internal service auth header string securely."""
     if not INTERNAL_SERVICE_SECRET:
         return
@@ -31,8 +31,9 @@ def _verify_service_auth(
             detail="Unauthorized: invalid service auth"
         )
 
+# FIX ISSUE 2 ONLY: Dropped 'async' so blocking I/O offloads to worker threads safely
 @router.post("/join-request")
-async def handle_join_request_notification(
+def handle_join_request_notification(
     payload: JoinRequestPayload,
     _: None = Depends(_verify_service_auth),
 ):
