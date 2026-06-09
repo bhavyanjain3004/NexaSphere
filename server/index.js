@@ -49,6 +49,9 @@ import { studentUsersRepository } from './repositories/studentUsersRepository.js
 import * as studentAuthController from './controllers/studentAuthController.js';
 import { requireStudentAuth } from './middleware/studentAuthMiddleware.js';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
+import { tierRateLimiter } from './middleware/tierRateLimiter.js';
+import compression from 'compression';
+import syncRouter from './routes/sync.js';
 
 validateLimiters();
 
@@ -73,6 +76,7 @@ app.set(
 );
 
 initializeSentry(app);
+app.use(compression());
 
 if (!process.env.CORS_ORIGIN) {
   throw new Error('CORS_ORIGIN environment variable must be set.');
@@ -229,7 +233,7 @@ app.use(performanceMonitor);
 app.use(cookieParser());
 
 // Global API rate limiter — protects all /api routes from request flooding
-app.use('/api', apiRateLimiter);
+app.use('/api', tierRateLimiter());
 
 function requestLogger(req, res, next) {
   const start = process.hrtime.bigint();
@@ -267,6 +271,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api', documentationRouter);
 app.use('/', apiRouter);
+app.use('/', syncRouter);
 
 const adminAuth = adminAuthMiddleware.requireAdmin;
 
