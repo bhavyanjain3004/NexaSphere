@@ -6,6 +6,8 @@
 import { Server } from 'socket.io';
 import logger from '../utils/logger.js';
 import { getAdminSession } from '../repositories/adminSessionsRepository.js';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { getRedisClient } from '../utils/redis.js';
 
 let io = null;
 const connectedUsers = new Map();
@@ -47,6 +49,17 @@ export function initializeSocketIO(httpServer) {
     reconnectionDelayMax: 5000,
     reconnectionAttempts: 5,
   });
+
+  if (process.env.REDIS_URL) {
+    try {
+      const pubClient = getRedisClient();
+      const subClient = pubClient.duplicate();
+      io.adapter(createAdapter(pubClient, subClient));
+      logger.info('Socket.IO configured with Redis Adapter for horizontal scaling.');
+    } catch (err) {
+      logger.error('Failed to configure Socket.IO Redis adapter:', err);
+    }
+  }
 
   // Connection auth middleware — checks handshake auth token
   io.use(async (socket, next) => {
