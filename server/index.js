@@ -50,7 +50,6 @@ import * as studentAuthController from './controllers/studentAuthController.js';
 import { requireStudentAuth } from './middleware/studentAuthMiddleware.js';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
 import compression from 'compression';
-import syncRouter from './routes/sync.js';
 
 validateLimiters();
 
@@ -269,7 +268,6 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api', documentationRouter);
 app.use('/', apiRouter);
-app.use('/', syncRouter);
 
 const adminAuth = adminAuthMiddleware.requireAdmin;
 
