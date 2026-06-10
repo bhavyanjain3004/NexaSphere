@@ -91,16 +91,11 @@ export const resourcesRepository = {
       }
 
       const where = conditions.join(' AND ');
+      const listSql = `select * from resources where ${where} order by created_at desc limit $${paramIdx} offset $${paramIdx + 1}`;
+      const countSql = `select count(*)::int as total from resources where ${where}`;
 
-      const { rows } = await client.query(
-        `select * from resources where ${where} order by created_at desc limit $${paramIdx} offset $${paramIdx + 1}`,
-        [...params, limit, offset]
-      );
-
-      const countResult = await client.query(
-        `select count(*)::int as total from resources where ${where}`,
-        params
-      );
+      const { rows } = await client.query(listSql, [...params, limit, offset]);
+      const countResult = await client.query(countSql, params);
 
       return { rows: rows.map(mapRow), total: countResult.rows[0]?.total ?? 0 };
     });
@@ -217,10 +212,8 @@ export const resourcesRepository = {
       sets.push(`updated_at = now()`);
 
       params.push(id);
-      const { rows } = await client.query(
-        `update resources set ${sets.join(', ')} where id = $${paramIdx} returning *`,
-        params
-      );
+      const updateSql = `update resources set ${sets.join(', ')} where id = $${paramIdx} returning *`;
+      const { rows } = await client.query(updateSql, params);
       return rows.length ? mapRow(rows[0]) : null;
     });
   },
@@ -253,10 +246,8 @@ export const resourcesRepository = {
     }
 
     return withDb(async (client) => {
-      const { rows } = await client.query(
-        `update resources set downloads = downloads + 1, updated_at = now() where id = $1 returning *`,
-        [id]
-      );
+      const incrementSql = `update resources set downloads = downloads + 1, updated_at = now() where id = $1 returning *`;
+      const { rows } = await client.query(incrementSql, [id]);
       return rows.length ? mapRow(rows[0]) : null;
     });
   },
