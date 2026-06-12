@@ -15,18 +15,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install dependencies
-        run: |
-          cd website
-          npm ci --legacy-peer-deps
+          cache: 'npm'
+
+      - name: Upgrade npm to v11 (matches lockfile generator)
+        run: npm install -g npm@11
+
+      - name: Install monorepo dependencies
+        run: npm install --legacy-peer-deps
+
       - name: Build the website
-        run: |
-          cd website
-          npm run build
+        run: npm run build --workspace=website
+
       - name: Run Lighthouse CI
         run: |
           npm install -g @lhci/cli@0.13.x
