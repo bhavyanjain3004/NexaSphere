@@ -4,7 +4,6 @@ import { setTraceIdResolver } from './utils/logContext.js';
 import { getActiveTraceId } from './observability/tracing.js';
 import helmet from 'helmet';
 import express from 'express';
-import { body, validationResult } from 'express-validator';
 import cors from 'cors';
 import morgan from 'morgan';
 import { EventEmitter } from 'events';
@@ -20,6 +19,12 @@ import { initializeSocketIO, emitToRoom, getRoom } from './config/socket.js';
 import adminStreamRouter from './routes/adminStream.js';
 import documentationRouter from './routes/documentation.js';
 import monitoringRouter from './routes/monitoring.js';
+import healthRouter from './routes/health.js';
+import coreTeamRouter from './routes/coreTeam.js';
+import formsRouter from './routes/forms.js';
+import portfolioRouter from './routes/portfolio.js';
+import notificationsRouter from './routes/notifications.js';
+import adminRouter from './routes/admin.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { tracingMiddleware } from './middleware/tracingMiddleware.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -331,18 +336,16 @@ if (!useStructuredHttpLog) {
   app.use(requestLogger);
 }
 
-// ── Health check (required by Render, Railway, and load balancers) ──
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'nexasphere-api', timestamp: new Date().toISOString() });
-});
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'nexasphere-api', timestamp: new Date().toISOString() });
-});
-
-// Mount monitoring + API documentation routes
+// Mount route modules
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api', documentationRouter);
 app.use('/', apiRouter);
+app.use('/', healthRouter);
+app.use('/', coreTeamRouter);
+app.use('/api', formsRouter);
+app.use('/api', portfolioRouter);
+app.use('/api', notificationsRouter);
+app.use('/api/admin', adminRouter);
 app.use('/', syncRouter);
 
 const adminAuth = adminAuthMiddleware.requireAdmin;
@@ -998,41 +1001,7 @@ function clearActivityAuthAttempts(ip) {
   failedActivityAuthAttempts.delete(ip);
 }
 
-// REST Endpoints
-app.get('/healthz', async (req, res) => {
-  try {
-    const list = await eventsService.listEvents({ page: 1, limit: 1 });
-    res.json({
-      ok: true,
-      events: list?.total ?? 0,
-      storage: HAS_SUPABASE ? 'supabase' : 'file',
-    });
-  } catch (e) {
-    res.status(503).json({
-      ok: false,
-      error: e?.message || 'Health check failed',
-      storage: HAS_SUPABASE ? 'supabase' : 'file',
-    });
-  }
-});
-
-// Event channels/content
-app.get('/api/content/events', eventsController.listEvents);
-app.get('/api/content/activity-events/:activityKey', activityEventsController.listActivityEvents);
-app.post(
-  '/api/content/activity-events/:activityKey',
-  protectedActionRateLimiter,
-  activityEventsController.addActivityEvent
-);
-app.delete(
-  '/api/content/activity-events/:activityKey/:eventId',
-  protectedActionRateLimiter,
-  activityEventsController.deleteActivityEvent
-);
-
-// Admin Auth Endpoints
-app.post('/api/admin/login', authRateLimiter, adminAuthMiddleware.login);
-app.post('/api/admin/logout', adminAuth, adminAuthMiddleware.logout);
+// Admin Analytics & Metrics (mounted with admin auth)
 app.use('/api/admin/analytics', adminAuth, analyticsRouter);
 app.use('/api/admin/metrics', adminAuth, adminStreamRouter);
 
@@ -1044,7 +1013,7 @@ app.get('/api/auth/github/callback', studentAuthController.githubCallback);
 app.get('/api/auth/me', requireStudentAuth, studentAuthController.getMe);
 app.post('/api/auth/logout', studentAuthController.logout);
 
-// Event Admin Management
+// ── Event Admin Management ──
 app.get('/api/admin/events', adminAuth, eventsController.adminListEvents);
 app.post('/api/admin/events', adminAuth, eventsController.adminCreateEvent);
 app.put('/api/admin/events/:id', adminAuth, eventsController.adminUpdateEvent);
@@ -1667,73 +1636,6 @@ app.put('/api/notifications/preferences/bulk', async (req, res) => {
   }
 });
 
-app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
-  try {
-    const body = req.body || {};
-    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-
-    // 1. Validate credentials up front.  Anything below this point
-    //    trusts the username + passkey pair.
-    const credentials = portfolioPutSchema.safeParse({
-      username: body.username,
-      passkey: body.passkey,
-    });
-    if (!credentials.success) {
-      const firstIssue = credentials.error.issues[0];
-      return res.status(400).json({ error: firstIssue?.message || 'Invalid request body' });
-    }
-    const { username, passkey } = credentials.data;
-
-    // 2. Validate the content body.  This rejects XSS payloads such
-    //    as javascript: URLs and unknown protocol schemes before
-    //    the data ever reaches the repository.  The repository
-    //    re-sanitizes as defense-in-depth.
-    const content = portfolioContentSchema.safeParse(body);
-    if (!content.success) {
-      const firstIssue = content.error.issues[0];
-      return res.status(400).json({
-        error:
-          `Invalid portfolio content: ${firstIssue?.path?.join('.') || ''} ${firstIssue?.message || ''}`.trim(),
-      });
-    }
-
-    const existingPortfolio = await portfolioRepository.getByUsername(username);
-    const isNewRegistration = !existingPortfolio;
-
-    const lockout = checkPasskeyLockout(username, ip);
-    if (lockout) {
-      return res.status(429).json({
-        error: 'Too many failed passkey attempts. Please try again later.',
-      });
-    }
-
-    const isAuthorized = await portfolioRepository.verifyPasskey(username, passkey, {
-      allowNew: isNewRegistration,
-    });
-    if (!isAuthorized) {
-      recordFailedPasskeyAttempt(username, ip);
-      return res.status(401).json({ error: 'Incorrect passkey for this username' });
-    }
-
-    clearPasskeyAttempts(username, ip);
-
-    const saved = await portfolioRepository.createOrUpdate({
-      ...content.data,
-      username,
-      passkey,
-    });
-    return res.json({ ok: true, portfolio: saved });
-  } catch (err) {
-    if (err.code === '23505') {
-      return res
-        .status(409)
-        .json({ error: 'Username already exists. Another request may have just created it.' });
-    }
-    console.error('Error saving portfolio:', err);
-    return res.status(500).json({ error: err.message || 'Internal server error' });
-  }
-});
-
 // ── Forum / Q&A ──
 app.get('/api/forum/categories', forumController.listCategories);
 app.get('/api/forum/threads', forumController.listThreads);
@@ -1772,7 +1674,6 @@ app.get('/api/admin/mentors', adminAuth, mentorshipController.adminListMentors);
 app.get('/api/search', searchController.search);
 app.get('/api/search/trending', searchController.trending);
 app.get('/api/recommendations', searchController.recommendations);
-
 // Must be registered after all routes.
 app.use(notFoundHandler);
 addSentryErrorHandler(app);
