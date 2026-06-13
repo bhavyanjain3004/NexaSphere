@@ -41,6 +41,30 @@ resource "aws_route53_health_check" "secondary" {
   }
 }
 
+variable "primary_lb_dns_name" {
+  description = "Primary load balancer DNS name"
+  type        = string
+}
+
+variable "primary_lb_zone_id" {
+  description = "Primary load balancer zone ID"
+  type        = string
+}
+
+variable "secondary_lb_dns_name" {
+  description = "Secondary load balancer DNS name"
+  type        = string
+}
+
+variable "secondary_lb_zone_id" {
+  description = "Secondary load balancer zone ID"
+  type        = string
+}
+
+data "aws_route53_zone" "main" {
+  name = var.domain_name
+}
+
 # Failover DNS Record setup
 resource "aws_route53_record" "primary" {
   zone_id = data.aws_route53_zone.main.zone_id
@@ -55,8 +79,8 @@ resource "aws_route53_record" "primary" {
   health_check_id = aws_route53_health_check.primary.id
 
   alias {
-    name                   = aws_lb.primary.dns_name
-    zone_id                = aws_lb.primary.zone_id
+    name                   = var.primary_lb_dns_name
+    zone_id                = var.primary_lb_zone_id
     evaluate_target_health = true
   }
 }
@@ -74,8 +98,8 @@ resource "aws_route53_record" "secondary" {
   health_check_id = aws_route53_health_check.secondary.id
 
   alias {
-    name                   = aws_lb.secondary.dns_name
-    zone_id                = aws_lb.secondary.zone_id
+    name                   = var.secondary_lb_dns_name
+    zone_id                = var.secondary_lb_zone_id
     evaluate_target_health = true
   }
 }

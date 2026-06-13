@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD013 -->
 # Disaster Recovery & Business Continuity Plan
 
 ## Overview

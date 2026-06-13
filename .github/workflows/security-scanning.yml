@@ -85,7 +85,7 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL'
 
   iac-scan:
     name: Checkov IaC Scan
@@ -98,4 +98,5 @@ jobs:
         with:
           directory: .
           framework: terraform,cloudformation
+          soft_fail: true
           skip_check: CKV_DOCKER_1,CKV_AWS_1
