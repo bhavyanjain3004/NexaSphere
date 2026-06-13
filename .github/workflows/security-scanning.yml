@@ -68,12 +68,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Build Docker image from server/Dockerfile
+      - name: Build Docker image from Dockerfile
         run: |
-          if [ -f server/Dockerfile ]; then
-            docker build -t nexasphere:${{ github.sha }} ./server
+          if [ -f Dockerfile ]; then
+            docker build -t nexasphere:${{ github.sha }} .
           else
-            echo "No Dockerfile found in server/ — skipping build"
+            echo "No Dockerfile found — skipping build"
             docker pull alpine:latest
             docker tag alpine:latest nexasphere:${{ github.sha }}
           fi
