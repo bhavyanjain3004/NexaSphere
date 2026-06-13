@@ -17,7 +17,7 @@ const SectionSchema = z
   .min(1, 'Section is required')
   .max(20);
 
-const OptionalText = (max) => z.string().trim().max(max).optional().transform((value) => (value ? value.trim() : undefined));
+const OptionalText = (max) => z.string().trim().max(max).optional().transform((value) => value || undefined);
 
 const TextList = z
   .union([z.array(z.string()), z.string()])
