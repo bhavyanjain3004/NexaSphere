@@ -76,6 +76,7 @@ jobs:
         run: terraform plan -no-color -out=tfplan
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_environment: ${{ env.TF_WORKSPACE }}
 
       - name: Upload Plan
         uses: actions/upload-artifact@v4
@@ -127,3 +128,4 @@ jobs:
         run: terraform apply -auto-approve
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_environment: ${{ env.TF_WORKSPACE }}
