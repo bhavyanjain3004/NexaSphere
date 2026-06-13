@@ -6,6 +6,7 @@
 import { Server } from 'socket.io';
 import logger from '../utils/logger.js';
 import { getAdminSession } from '../repositories/adminSessionsRepository.js';
+import { resolveAdminPermissions, getRoomsForPermissions } from './eventPermissions.js';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { getRedisClient } from '../utils/redis.js';
 
@@ -74,6 +75,7 @@ export function initializeSocketIO(httpServer) {
         if (session) {
           socket.adminSession = session;
           socket.adminAuthenticated = true;
+          socket.adminPermissions = resolveAdminPermissions(session);
         }
       } catch {
         // Auth check is best-effort at connection time
@@ -96,13 +98,20 @@ export function initializeSocketIO(httpServer) {
 export function _onConnection(socket) {
   logger.info('User connected', { socketId: socket.id, admin: !!socket.adminAuthenticated });
 
-  // Auto-join authenticated admin sockets to admin room
+  // Auto-join authenticated admin sockets to permission-scoped rooms
   if (socket.adminAuthenticated) {
-    socket.join('admin-room');
-    const role = socket.adminSession?.metadata?.role;
-    if (role && typeof role === 'string') {
-      socket.join(`admin-room:${role}`);
+    if (!socket.adminPermissions) {
+      socket.adminPermissions = resolveAdminPermissions(socket.adminSession);
     }
+    const adminRooms = getRoomsForPermissions(socket.adminPermissions);
+    for (const room of adminRooms) {
+      socket.join(room);
+    }
+    logger.info('Admin joined scoped rooms', {
+      socketId: socket.id,
+      username: socket.adminSession?.username,
+      rooms: adminRooms,
+    });
   }
 
   // Keep track of identify operations to rate limit floods per-socket (Max 3 events per lifetime)
@@ -272,7 +281,7 @@ export function _onConnection(socket) {
   socket.on('document_change', (data) => {
     const { roomId, ...payload } = data;
     if (roomId && _isWorkspaceMember(roomId, socket.id)) {
-      socket.to(roomId).emit('document_change', payload);
+      socket.to(roomId).emit('document_change', { roomId, ...payload });
     }
   });
 
@@ -284,9 +293,9 @@ export function _onConnection(socket) {
   });
 
   socket.on('typing_start', (data) => {
-    const { roomId, ...payload } = data;
+    const { roomId, user, ...payload } = data;
     if (roomId && _isWorkspaceMember(roomId, socket.id)) {
-      socket.to(roomId).emit('typing_start', { socketId: socket.id, ...payload });
+      socket.to(roomId).emit('typing_start', { socketId: socket.id, user, ...payload });
     }
   });
 
@@ -312,14 +321,15 @@ export function _onConnection(socket) {
       }
       socket.adminSession = session;
       socket.adminAuthenticated = true;
-      socket.join('admin-room');
-      const role = session.metadata?.role;
-      if (role && typeof role === 'string') {
-        socket.join(`admin-room:${role}`);
+      socket.adminPermissions = resolveAdminPermissions(session);
+      const authRooms = getRoomsForPermissions(socket.adminPermissions);
+      for (const room of authRooms) {
+        socket.join(room);
       }
       logger.info('Admin authenticated via socket event', {
         socketId: socket.id,
         username: session.username,
+        rooms: authRooms,
       });
       socket.emit('admin:authenticated', { success: true });
     } catch (e) {
@@ -439,7 +449,8 @@ function _cleanupWorkspaceMembership(socketId) {
 
 /**
  * Emit an event to the admin role-scoped room(s) that have permission
- * to receive it.
+ * to receive it.  Falls back to the legacy shared `admin-room` for
+ * `super_admin` so single-admin deployments continue working.
  *
  * @param {string|string[]} roles - Role name(s) (e.g. 'membership_admin')
  * @param {string} eventName - Event name

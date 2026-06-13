@@ -79,12 +79,8 @@ async function logError(error, context = {}) {
  */
 function getErrorStats() {
   const total = errorStore.errors.length;
-  const lastHour = errorStore.errors.filter(
-    (e) => new Date() - e.timestamp < 3600000
-  ).length;
-  const last24Hours = errorStore.errors.filter(
-    (e) => new Date() - e.timestamp < 86400000
-  ).length;
+  const lastHour = errorStore.errors.filter((e) => new Date() - e.timestamp < 3600000).length;
+  const last24Hours = errorStore.errors.filter((e) => new Date() - e.timestamp < 86400000).length;
 
   const errorsByStatusMap = {};
   const errorsByEndpointMap = {};
@@ -100,7 +96,7 @@ function getErrorStats() {
   const errorsByStatus = Object.entries(errorsByStatusMap).map(([status, count]) => ({
     status: parseInt(status),
     count,
-    percentage: total > 0 ? ((count / total) * 100).toFixed(2) : "0.00",
+    percentage: total > 0 ? ((count / total) * 100).toFixed(2) : '0.00',
   }));
 
   const topEndpoints = Object.entries(errorsByEndpointMap)

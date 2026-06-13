@@ -6,7 +6,7 @@ const certPath = process.env.SSL_CERT_PATH || 'gateway/certs/localhost.crt';
 
 async function checkSslExpiry() {
   console.log(`Checking SSL certificate status at: ${certPath}`);
-  
+
   if (!fs.existsSync(certPath)) {
     console.warn(`Certificate file not found at ${certPath}`);
     // For development/testing ease, run a mock alert check
