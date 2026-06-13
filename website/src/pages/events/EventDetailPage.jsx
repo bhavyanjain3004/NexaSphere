@@ -13,18 +13,19 @@ function Typewriter({ text, speed = 10 }) {
   const [done, setDone] = useState(false);
   const ref = useRef(null);
   const started = useRef(false);
+  const intervalRef = useRef(null);
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => {
         if (e.isIntersecting && !started.current) {
           started.current = true;
           let i = 0;
-          const t = setInterval(() => {
+          intervalRef.current = setInterval(() => {
             setDisplayed(text.slice(0, i + 1));
             i++;
             if (i >= text.length) {
               setDone(true);
-              clearInterval(t);
+              clearInterval(intervalRef.current);
             }
           }, speed);
         }
@@ -32,7 +33,10 @@ function Typewriter({ text, speed = 10 }) {
       { threshold: 0.3 }
     );
     if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
+    return () => {
+      obs.disconnect();
+      clearInterval(intervalRef.current);
+    };
   }, [text, speed]);
   return (
     <span ref={ref}>
