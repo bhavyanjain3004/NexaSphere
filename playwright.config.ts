@@ -38,7 +38,7 @@ export default defineConfig({
       command: 'npm run dev',
       url: process.env.E2E_BASE_URL || 'http://localhost:5175',
       reuseExistingServer: !process.env.CI,
-      timeout: 30000,
+      timeout: 120 * 1000,
     },
   ],
 });
