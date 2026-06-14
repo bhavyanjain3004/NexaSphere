@@ -10,7 +10,7 @@ export const XP_VALUES = {
   DAILY_STREAK: 20,
   ACHIEVEMENT_UNLOCK: 0,
   SHARE_EVENT: 15,
-  FEEDBACK_GIVEN: 10
+  FEEDBACK_GIVEN: 10,
 };
 
 // Achievement tiers and requirements
@@ -23,7 +23,7 @@ export const ACHIEVEMENTS = {
     icon: '🎯',
     tier: 'bronze',
     xpReward: 50,
-    requirement: { type: 'events_attended', count: 1 }
+    requirement: { type: 'events_attended', count: 1 },
   },
   EVENT_MASTER: {
     id: 'event_master',
@@ -32,7 +32,7 @@ export const ACHIEVEMENTS = {
     icon: '🏆',
     tier: 'gold',
     xpReward: 500,
-    requirement: { type: 'events_attended', count: 10 }
+    requirement: { type: 'events_attended', count: 10 },
   },
   EVENT_ADDICT: {
     id: 'event_addict',
@@ -41,7 +41,7 @@ export const ACHIEVEMENTS = {
     icon: '🌟',
     tier: 'platinum',
     xpReward: 1500,
-    requirement: { type: 'events_attended', count: 25 }
+    requirement: { type: 'events_attended', count: 25 },
   },
 
   // Streak achievements
@@ -52,7 +52,7 @@ export const ACHIEVEMENTS = {
     icon: '🔥',
     tier: 'bronze',
     xpReward: 30,
-    requirement: { type: 'streak', count: 3 }
+    requirement: { type: 'streak', count: 3 },
   },
   STREAK_7: {
     id: 'streak_7',
@@ -61,7 +61,7 @@ export const ACHIEVEMENTS = {
     icon: '⚡',
     tier: 'silver',
     xpReward: 100,
-    requirement: { type: 'streak', count: 7 }
+    requirement: { type: 'streak', count: 7 },
   },
   STREAK_30: {
     id: 'streak_30',
@@ -70,7 +70,7 @@ export const ACHIEVEMENTS = {
     icon: '👑',
     tier: 'platinum',
     xpReward: 500,
-    requirement: { type: 'streak', count: 30 }
+    requirement: { type: 'streak', count: 30 },
   },
 
   // Contribution achievements
@@ -81,7 +81,7 @@ export const ACHIEVEMENTS = {
     icon: '💬',
     tier: 'bronze',
     xpReward: 25,
-    requirement: { type: 'comments', count: 1 }
+    requirement: { type: 'comments', count: 1 },
   },
   COMMUNITY_BUILDER: {
     id: 'community_builder',
@@ -90,7 +90,7 @@ export const ACHIEVEMENTS = {
     icon: '🗣️',
     tier: 'gold',
     xpReward: 300,
-    requirement: { type: 'comments', count: 50 }
+    requirement: { type: 'comments', count: 50 },
   },
 
   // Referral achievements
@@ -101,7 +101,7 @@ export const ACHIEVEMENTS = {
     icon: '🤝',
     tier: 'silver',
     xpReward: 100,
-    requirement: { type: 'referrals', count: 1 }
+    requirement: { type: 'referrals', count: 1 },
   },
   REFERRAL_LEGEND: {
     id: 'referral_legend',
@@ -110,7 +110,7 @@ export const ACHIEVEMENTS = {
     icon: '🌟',
     tier: 'platinum',
     xpReward: 1000,
-    requirement: { type: 'referrals', count: 10 }
+    requirement: { type: 'referrals', count: 10 },
   },
 
   // Content creation
@@ -121,7 +121,7 @@ export const ACHIEVEMENTS = {
     icon: '✍️',
     tier: 'silver',
     xpReward: 50,
-    requirement: { type: 'content_created', count: 1 }
+    requirement: { type: 'content_created', count: 1 },
   },
 
   // Feedback
@@ -132,8 +132,8 @@ export const ACHIEVEMENTS = {
     icon: '📝',
     tier: 'bronze',
     xpReward: 20,
-    requirement: { type: 'feedback', count: 1 }
-  }
+    requirement: { type: 'feedback', count: 1 },
+  },
 };
 
 // Level thresholds
@@ -147,18 +147,25 @@ export const LEVEL_THRESHOLDS = [
   { level: 7, xpRequired: 2200, title: 'Grandmaster' },
   { level: 8, xpRequired: 3000, title: 'Legend' },
   { level: 9, xpRequired: 4000, title: 'Hero' },
-  { level: 10, xpRequired: 5500, title: 'Champion' }
+  { level: 10, xpRequired: 5500, title: 'Champion' },
 ];
 
 class GamificationService {
   constructor() {
     this.userData = this.loadUserData();
+    this.updateStreak();
   }
 
   loadUserData() {
-    const stored = localStorage.getItem('gamification_user_data');
-    if (stored) {
-      return JSON.parse(stored);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem('gamification_user_data');
+        if (stored) {
+          return JSON.parse(stored);
+        }
+      }
+    } catch (e) {
+      console.warn('LocalStorage not available:', e);
     }
     return {
       userId: null,
@@ -176,15 +183,21 @@ class GamificationService {
         shares: 0,
         current_streak: 0,
         longest_streak: 0,
-        last_active: null
+        last_active: null,
       },
       badges: [],
-      notifications: []
+      notifications: [],
     };
   }
 
   saveUserData() {
-    localStorage.setItem('gamification_user_data', JSON.stringify(this.userData));
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('gamification_user_data', JSON.stringify(this.userData));
+      }
+    } catch (e) {
+      console.warn('LocalStorage write failed:', e);
+    }
   }
 
   // Update user ID
@@ -196,34 +209,34 @@ class GamificationService {
   // Track user action and award XP
   trackAction(action, metadata = {}) {
     const xpEarned = XP_VALUES[action] || 0;
-    
+
+    // Update streak first, so streak-based achievements are accurate for today!
+    this.updateStreak();
+
     // Update stats based on action
     this.updateStats(action, metadata);
-    
+
     // Add XP
     this.addXP(xpEarned);
-    
+
     // Check and unlock achievements
     const newAchievements = this.checkAchievements();
-    
-    // Update streak
-    this.updateStreak();
-    
+
     // Save data
     this.saveUserData();
-    
+
     return {
       xpEarned,
       newAchievements,
       totalXP: this.userData.xp,
-      level: this.userData.level
+      level: this.userData.level,
     };
   }
 
   updateStats(action, metadata) {
     const stats = this.userData.stats;
-    
-    switch(action) {
+
+    switch (action) {
       case 'EVENT_ATTENDANCE':
         stats.events_attended++;
         break;
@@ -256,7 +269,7 @@ class GamificationService {
   updateLevel() {
     let newLevel = 1;
     let newTitle = 'Newcomer';
-    
+
     for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
       if (this.userData.xp >= LEVEL_THRESHOLDS[i].xpRequired) {
         newLevel = LEVEL_THRESHOLDS[i].level;
@@ -264,15 +277,15 @@ class GamificationService {
         break;
       }
     }
-    
+
     if (newLevel > this.userData.level) {
       this.userData.notifications.push({
         type: 'level_up',
         message: `Congratulations! You reached Level ${newLevel} - ${newTitle}!`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
-    
+
     this.userData.level = newLevel;
     this.userData.title = newTitle;
   }
@@ -280,15 +293,15 @@ class GamificationService {
   updateStreak() {
     const today = new Date().toDateString();
     const lastActive = this.userData.stats.last_active;
-    
+
     if (lastActive === today) {
       return; // Already updated today
     }
-    
+
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toDateString();
-    
+
     if (lastActive === yesterdayStr) {
       this.userData.stats.current_streak++;
       if (this.userData.stats.current_streak > this.userData.stats.longest_streak) {
@@ -299,25 +312,25 @@ class GamificationService {
       this.userData.notifications.push({
         type: 'streak',
         message: `🔥 ${this.userData.stats.current_streak} day streak! +${XP_VALUES.DAILY_STREAK} XP`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } else if (lastActive !== today) {
       this.userData.stats.current_streak = 1;
     }
-    
+
     this.userData.stats.last_active = today;
   }
 
   checkAchievements() {
     const unlockedAchievements = [];
     const stats = this.userData.stats;
-    const existingIds = new Set(this.userData.achievements.map(a => a.id));
-    
+    const existingIds = new Set(this.userData.achievements.map((a) => a.id));
+
     for (const [key, achievement] of Object.entries(ACHIEVEMENTS)) {
       if (existingIds.has(achievement.id)) continue;
-      
+
       let progress = 0;
-      switch(achievement.requirement.type) {
+      switch (achievement.requirement.type) {
         case 'events_attended':
           progress = stats.events_attended;
           break;
@@ -337,31 +350,37 @@ class GamificationService {
           progress = stats.feedback;
           break;
       }
-      
+
       if (progress >= achievement.requirement.count) {
         this.userData.achievements.push({
           ...achievement,
-          unlockedAt: new Date().toISOString()
+          unlockedAt: new Date().toISOString(),
         });
         this.userData.badges.push({
           id: achievement.id,
           title: achievement.title,
           icon: achievement.icon,
           tier: achievement.tier,
-          unlockedAt: new Date().toISOString()
+          unlockedAt: new Date().toISOString(),
         });
         this.addXP(achievement.xpReward);
         unlockedAchievements.push(achievement);
-        
+
         this.userData.notifications.push({
           type: 'achievement',
           message: `🏆 Achievement Unlocked: ${achievement.title}! +${achievement.xpReward} XP`,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     }
-    
+
     return unlockedAchievements;
+  }
+
+  getCurrentLevelXP() {
+    const currentLevel = this.userData.level;
+    const levelObj = LEVEL_THRESHOLDS.find((l) => l.level === currentLevel);
+    return levelObj ? levelObj.xpRequired : 0;
   }
 
   getUserStats() {
@@ -369,17 +388,18 @@ class GamificationService {
       xp: this.userData.xp,
       level: this.userData.level,
       title: this.userData.title,
+      currentLevelXP: this.getCurrentLevelXP(),
       nextLevelXP: this.getNextLevelXP(),
       achievements: this.userData.achievements,
       badges: this.userData.badges,
       stats: this.userData.stats,
-      notifications: this.userData.notifications
+      notifications: this.userData.notifications,
     };
   }
 
   getNextLevelXP() {
     const currentLevel = this.userData.level;
-    const nextLevel = LEVEL_THRESHOLDS.find(l => l.level === currentLevel + 1);
+    const nextLevel = LEVEL_THRESHOLDS.find((l) => l.level === currentLevel + 1);
     return nextLevel ? nextLevel.xpRequired : this.userData.xp;
   }
 
@@ -391,17 +411,22 @@ class GamificationService {
       { rank: 2, name: 'Sarah Chen', xp: 2420, level: 7, avatar: '👩‍💻' },
       { rank: 3, name: 'Mike Ross', xp: 2100, level: 7, avatar: '👨‍💼' },
       { rank: 4, name: 'Emma Watson', xp: 1850, level: 6, avatar: '👩‍🎓' },
-      { rank: 5, name: 'David Kim', xp: 1520, level: 6, avatar: '👨‍🔬' }
+      { rank: 5, name: 'David Kim', xp: 1520, level: 6, avatar: '👨‍🔬' },
     ];
   }
 
   getTierColor(tier) {
-    switch(tier) {
-      case 'bronze': return '#CD7F32';
-      case 'silver': return '#C0C0C0';
-      case 'gold': return '#FFD700';
-      case 'platinum': return '#E5E4E2';
-      default: return '#CC1111';
+    switch (tier) {
+      case 'bronze':
+        return '#CD7F32';
+      case 'silver':
+        return '#C0C0C0';
+      case 'gold':
+        return '#FFD700';
+      case 'platinum':
+        return '#E5E4E2';
+      default:
+        return '#CC1111';
     }
   }
 

@@ -6,21 +6,54 @@ export default function GamificationDashboard() {
   const [userStats, setUserStats] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
+  const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
     loadData();
   }, []);
 
+  const showToast = (type, message) => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
+
   const loadData = () => {
-    setUserStats(gamificationService.getUserStats());
+    const stats = gamificationService.getUserStats();
+    setUserStats(stats);
     setLeaderboard(gamificationService.getLeaderboard());
+
+    // Show initial notifications (e.g., loaded from constructor) as toasts and clear them
+    if (stats.notifications && stats.notifications.length > 0) {
+      stats.notifications.forEach((notif) => {
+        showToast(notif.type, notif.message);
+      });
+      gamificationService.clearNotifications();
+    }
   };
 
   const handleAction = (action) => {
     const result = gamificationService.trackAction(action);
-    loadData();
-    if (result.newAchievements.length > 0) {
-      alert(`🎉 Achievement Unlocked: ${result.newAchievements[0].title}! +${result.xpEarned} XP`);
+    const stats = gamificationService.getUserStats();
+    setUserStats(stats);
+
+    // Show toasts for new achievements with their actual rewards
+    if (result.newAchievements && result.newAchievements.length > 0) {
+      result.newAchievements.forEach((ach) => {
+        showToast('achievement', `🏆 Achievement Unlocked: ${ach.title}! +${ach.xpReward} XP`);
+      });
+    }
+
+    // Show toasts for level up or streak notifications
+    if (stats.notifications && stats.notifications.length > 0) {
+      stats.notifications.forEach((notif) => {
+        if (notif.type !== 'achievement') {
+          showToast(notif.type, notif.message);
+        }
+      });
+      gamificationService.clearNotifications();
     }
   };
 
@@ -43,7 +76,13 @@ export default function GamificationDashboard() {
     );
   }
 
-  const xpProgress = (userStats.xp / userStats.nextLevelXP) * 100;
+  const currentThreshold = userStats.currentLevelXP || 0;
+  const nextThreshold = userStats.nextLevelXP || 100;
+  const xpRange = nextThreshold - currentThreshold;
+  const xpProgress =
+    xpRange > 0
+      ? Math.min(100, Math.max(0, ((userStats.xp - currentThreshold) / xpRange) * 100))
+      : 100;
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
@@ -493,26 +532,93 @@ export default function GamificationDashboard() {
         </div>
       )}
 
-      {/* Notifications */}
-      {userStats.notifications.length > 0 && (
-        <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 1000 }}>
-          {userStats.notifications.slice(-3).map((notif, idx) => (
+      {/* Custom Floating Toasts System */}
+      {toasts.length > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            pointerEvents: 'none',
+          }}
+        >
+          {toasts.map((toast) => (
             <div
-              key={idx}
+              key={toast.id}
               style={{
-                background: '#1A1A1A',
-                border: `1px solid ${notif.type === 'achievement' ? '#10B981' : '#CC1111'}`,
-                borderRadius: '12px',
-                padding: '12px 20px',
-                marginTop: '8px',
-                maxWidth: '300px',
+                background: 'rgba(26, 26, 26, 0.95)',
+                border: `1px solid ${
+                  toast.type === 'achievement'
+                    ? '#10B981'
+                    : toast.type === 'level_up'
+                      ? '#F59E0B'
+                      : '#CC1111'
+                }`,
+                borderRadius: '16px',
+                padding: '16px 24px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                maxWidth: '350px',
+                backdropFilter: 'blur(8px)',
+                pointerEvents: 'auto',
+                animation: 'slideIn 0.3s ease-out forwards',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
               }}
             >
-              <p style={{ color: '#FFFFFF', fontSize: '13px' }}>{notif.message}</p>
+              <div style={{ flex: 1 }}>
+                <p
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: '13.5px',
+                    margin: 0,
+                    fontWeight: 500,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {toast.message}
+                </p>
+              </div>
+              <button
+                onClick={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#9CA3AF',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  padding: '0 4px',
+                  lineHeight: 1,
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={(e) => (e.target.style.color = '#FFFFFF')}
+                onMouseLeave={(e) => (e.target.style.color = '#9CA3AF')}
+              >
+                &times;
+              </button>
             </div>
           ))}
         </div>
       )}
+
+      {/* Styled Animations */}
+      <style>{`
+        @keyframes slideIn {
+          from {
+            transform: translateY(20px) scale(0.9);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }
