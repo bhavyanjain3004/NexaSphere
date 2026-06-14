@@ -103,6 +103,7 @@ jobs:
         env:
           NODE_ENV: test
           # Provide stub env vars so server startup helpers don't crash
+          CORS_ORIGIN: http://localhost:5175
           ADMIN_USERNAME: test-admin
           ADMIN_PASSWORD: TestPass123!ABC
           ADMIN_EVENT_PASSWORD: EventPass123!XYZ
