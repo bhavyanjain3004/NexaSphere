@@ -50,7 +50,7 @@ jobs:
     name: Plan
     needs: validate
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && secrets.AWS_ROLE_ARN != ''
     defaults:
       run:
         working-directory: infra/terraform

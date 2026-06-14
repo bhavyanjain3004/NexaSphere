@@ -34,4 +34,7 @@ jobs:
             !**/node_modules/**
             !website/dist/**
             !admin-dashboard/dist/**
+            !.github/**
+            !test-results/**
+            !**/test-results/**
           config: '.markdownlint.json'
