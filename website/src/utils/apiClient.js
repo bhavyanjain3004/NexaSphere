@@ -136,7 +136,8 @@ export const apiClient = async (url, options = {}) => {
         // Not JSON
       }
 
-      const message = errorDetail?.message || response.statusText || 'API Request Failed';
+      const message =
+        errorDetail?.message || errorDetail?.error || response.statusText || 'API Request Failed';
       const code = errorDetail?.code || 'API_ERROR';
 
       throw new ApiError(message, response.status, code);

@@ -32,6 +32,7 @@ export const apiRateLimiter = rateLimit({
   max: API_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
+  requestPropertyName: 'apiRateLimit',
   store: createRateLimitStore('rate-limit:api:'),
   handler: (req, res, _next, options) => {
     logger.warn('Global API rate limit exceeded', {
@@ -68,6 +69,7 @@ export const formRateLimiter = rateLimit({
   max: FORM_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
+  requestPropertyName: 'formRateLimit',
   store: createRateLimitStore('rate-limit:form:'),
   handler: (req, res, _next, options) => {
     logger.warn('Rate limit exceeded for public form API', {
@@ -89,6 +91,7 @@ export const authRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  requestPropertyName: 'authRateLimit',
   store: createRateLimitStore('rate-limit:auth:'),
   message: {
     error: 'Too many login attempts, please try again after a minute.',
@@ -101,6 +104,7 @@ export const notificationRateLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
+  requestPropertyName: 'notificationRateLimit',
   store: createRateLimitStore('rate-limit:notification:'),
   message: {
     error: 'Too many notification requests, please try again later.',
@@ -117,6 +121,7 @@ export const activityAuthRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  requestPropertyName: 'activityAuthRateLimit',
   store: createRateLimitStore('rate-limit:activity-auth:'),
   handler: (req, res, next, options) => {
     logger.warn('Activity-event auth rate limit exceeded', {
@@ -135,6 +140,7 @@ export const portfolioRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  requestPropertyName: 'portfolioRateLimit',
   store: createRateLimitStore('rate-limit:portfolio:'),
   handler: (req, res, next, options) => {
     logger.warn('Portfolio update rate limit exceeded', {

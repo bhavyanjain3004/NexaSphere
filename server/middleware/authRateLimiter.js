@@ -45,6 +45,7 @@ export const authRateLimiter = rateLimit({
   max: AUTH_MAX_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: false,
+  requestPropertyName: 'authRateLimit',
   store: createRateLimitStore('auth-limit:'),
   handler: createRateLimitHandler('Authentication'),
 });
@@ -58,6 +59,7 @@ export const protectedActionRateLimiter = rateLimit({
   max: AUTH_MAX_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: false,
+  requestPropertyName: 'protectedActionRateLimit',
   store: createRateLimitStore('protected-action-limit:'),
   handler: createRateLimitHandler('Protected Action'),
 });
@@ -71,6 +73,7 @@ export const passwordResetRateLimiter = rateLimit({
   max: RESET_MAX_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: false,
+  requestPropertyName: 'passwordResetRateLimit',
   store: createRateLimitStore('password-reset-limit:'),
   handler: (req, res, _next, options) => {
     logger.warn('[Security] Password Reset rate limit exceeded', {
