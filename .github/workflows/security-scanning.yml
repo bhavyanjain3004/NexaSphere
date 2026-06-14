@@ -70,8 +70,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Build Docker image from Dockerfile
         run: |
-          if [ -f Dockerfile ]; then
-            docker build -t nexasphere:${{ github.sha }} .
+          if [ -f server/Dockerfile ]; then
+            docker build --pull -t nexasphere:${{ github.sha }} ./server
           else
             echo "No Dockerfile found — skipping build"
             docker pull alpine:latest

@@ -43,6 +43,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -83,7 +92,7 @@ jobs:
           PORT: 8080
           CORS_ORIGIN: http://localhost:5175,http://localhost:5001
           ADMIN_USERS_JSON: '[{"username":"admin","password":"admin123","role":"SuperAdmin"}]'
-          ADMIN_EVENT_PASSWORD: EventPass123!XYZ
+          ADMIN_EVENT_PASSWORD: StrongEventPassword123!
         timeout-minutes: 2
 
       - name: Wait for server
