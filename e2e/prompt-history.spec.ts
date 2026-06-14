@@ -185,10 +185,9 @@ test.describe('Prompt History & Workspace System', () => {
     const deleteBtn = page.locator('.delete-btn').first();
     await deleteBtn.click();
 
-    // Handle confirmation
-    page.once('dialog', (dialog) => {
-      dialog.accept();
-    });
+    // Click "Delete" in the custom confirmation modal
+    const confirmBtn = page.locator('.history-confirm button').filter({ hasText: 'Delete' });
+    await confirmBtn.click();
 
     await page.waitForTimeout(500);
 

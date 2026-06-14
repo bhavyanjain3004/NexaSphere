@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { getPinnedPrompts, togglePinPrompt } from '../../lib/promptStore';
 import './PinnedChats.css';
 
-const PinnedChats = ({ onSelectPrompt, workspace = 'default' }) => {
+const PinnedChats = ({
+  onSelectPrompt,
+  workspace = 'default',
+  historyVersion = 0,
+  onHistoryChange,
+}) => {
   const [pinnedPrompts, setPinnedPrompts] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -20,12 +25,16 @@ const PinnedChats = ({ onSelectPrompt, workspace = 'default' }) => {
 
   useEffect(() => {
     loadPinnedPrompts();
-  }, [workspace]);
+  }, [workspace, historyVersion]);
 
   const handleUnpin = async (e, id) => {
     e.stopPropagation();
     await togglePinPrompt(id);
-    loadPinnedPrompts();
+    if (onHistoryChange) {
+      onHistoryChange();
+    } else {
+      loadPinnedPrompts();
+    }
   };
 
   const handleSelectPrompt = (prompt) => {

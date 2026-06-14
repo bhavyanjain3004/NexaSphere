@@ -131,23 +131,8 @@ export const searchPrompts = async (keyword, workspace = null) => {
  */
 export const getPinnedPrompts = async (workspace = null) => {
   try {
-    const database = await initializeDB();
-
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const index = store.index('pinned');
-      const request = index.getAll(true);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        let results = request.result;
-        if (workspace) {
-          results = results.filter((p) => p.workspace === workspace);
-        }
-        resolve(results.sort((a, b) => b.timestamp - a.timestamp));
-      };
-    });
+    const allPrompts = await getAllPrompts(workspace);
+    return allPrompts.filter((p) => p.pinned);
   } catch (error) {
     logger.error('Error retrieving pinned prompts:', error);
     return getPinnedPromptsFromLocalStorage(workspace);

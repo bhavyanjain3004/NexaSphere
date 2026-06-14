@@ -24,12 +24,15 @@ export const initializeSocket = (
     }
     connectionUrl = url;
 
+    const isE2E =
+      typeof window !== 'undefined' && window.navigator?.userAgent?.includes('Playwright-E2E');
+
     socketInstance = io(url, {
-      reconnection: true,
-      reconnectionAttempts: 10,
+      reconnection: !isE2E,
+      reconnectionAttempts: isE2E ? 1 : 10,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      timeout: 20000,
+      timeout: isE2E ? 2000 : 20000,
       autoConnect: true,
       transports: ['websocket', 'polling'],
     });
