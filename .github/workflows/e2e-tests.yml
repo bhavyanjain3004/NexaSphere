@@ -72,7 +72,7 @@ jobs:
       - name: Start server
         run: |
           cd server
-          npm install
+          npm install --legacy-peer-deps
           npm run migrate:latest
           node index.js &
           echo "SERVER_PID=$!"
