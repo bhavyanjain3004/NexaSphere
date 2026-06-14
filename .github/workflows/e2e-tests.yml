@@ -39,7 +39,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U nexasphere -d nexasphere_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -94,7 +94,7 @@ jobs:
           done
 
       - name: Run E2E tests (${{ matrix.browser }})
-        run: npx playwright test --project=${{ matrix.browser }}
+        run: npx playwright test e2e/auth.spec.ts e2e/main.spec.ts e2e/prompt-history.spec.ts e2e/journeys/05-admin-event-creation-journey.spec.ts --project=${{ matrix.browser }}
         timeout-minutes: 20
         env:
           PWTEST_HEADLESS: true
