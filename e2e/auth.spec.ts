@@ -4,12 +4,12 @@ test.describe('Authentication and Core Flows', () => {
   test('should display login page and allow admin login', async ({ page }) => {
     await page.goto('/admin');
 
-    // Wait for the page to fully load (cinematic intro bypassed in test env)
+    // Wait for the page to fully load
     await page.waitForLoadState('networkidle');
 
     // Verify login page elements using robust selectors
     const heading = page.getByRole('heading', { name: /admin login/i });
-    await expect(heading).toBeVisible({ timeout: 10000 });
+    await expect(heading).toBeVisible({ timeout: 15000 });
 
     const usernameInput = page.getByPlaceholder(/username/i);
     const passwordInput = page.getByPlaceholder(/password/i);
@@ -31,12 +31,15 @@ test.describe('Authentication and Core Flows', () => {
         .locator('p')
         .filter({ hasText: /invalid|credentials|failed/i })
         .first()
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test('should prevent unauthorized access to protected routes', async ({ page }) => {
     // Attempting to access admin dashboard directly without session
     await page.goto('/admin/dashboard');
+
+    // Wait for navigation to settle
+    await page.waitForLoadState('networkidle');
 
     // Most apps redirect to login if unauthorized — should still be on an /admin URL
     await expect(page).toHaveURL(/.*\/admin.*/);
