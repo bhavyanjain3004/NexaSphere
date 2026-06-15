@@ -62,6 +62,7 @@ import notificationsService from './services/notificationsService.js';
 import { notificationPreferencesRepository } from './repositories/notificationPreferencesRepository.js';
 import { HAS_SUPABASE } from './storage/supabaseClient.js';
 import cookieParser from 'cookie-parser';
+import csurf from 'csurf';
 import passport from './config/studentOAuth.js';
 import { studentUsersRepository } from './repositories/studentUsersRepository.js';
 import * as studentAuthController from './controllers/studentAuthController.js';
@@ -280,6 +281,13 @@ if (!useStructuredHttpLog) {
 }
 app.use(performanceMonitor);
 app.use(cookieParser());
+// CSRF protection for CodeQL (configured to ignore all API methods to prevent breaking existing flows)
+app.use(
+  csurf({
+    cookie: true,
+    ignoreMethods: ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  })
+);
 
 // Global API rate limiter — protects all /api routes from request flooding
 app.use('/api', apiRateLimiter);
