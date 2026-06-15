@@ -88,6 +88,7 @@ jobs:
           cd ..
         env:
           NODE_ENV: test
+          START_SERVER: 'true'
           DATABASE_URL: postgresql://nexasphere:nexasphere@localhost:5432/nexasphere_test
           PORT: 8080
           CORS_ORIGIN: http://localhost:5175,http://localhost:5001
