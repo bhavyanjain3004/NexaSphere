@@ -115,7 +115,7 @@ export default defineConfig({
       // Allow CI / other envs to override the API proxy target.
       // Local dev defaults to the Wrangler Workers dev server on 8787.
       // CI sets VITE_API_PROXY_TARGET=http://localhost:8080 (Express server).
-      const target = process.env.VITE_API_PROXY_TARGET || 'http://localhost:8787';
+      const target = process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:8787';
       const proxyOpts = {
         target,
         changeOrigin: true,

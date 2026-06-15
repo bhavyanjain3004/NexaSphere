@@ -40,9 +40,14 @@ function parseBearer(authHeader) {
  * @param {Object} httpServer - HTTP server instance
  */
 export function initializeSocketIO(httpServer) {
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',')
+        .map((o) => o.trim())
+        .filter(Boolean)
+    : 'http://localhost:5173';
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin: allowedOrigins,
       credentials: true,
     },
     reconnection: true,
