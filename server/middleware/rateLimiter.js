@@ -90,8 +90,8 @@ export const formRateLimiter = rateLimit({
 // Authentication rate limiter — 10 requests per IP per minute
 export const authRateLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
-  windowMs: AUTH_WINDOW_MS,
-  max: AUTH_MAX_REQUESTS,
+  windowMs: 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   requestPropertyName: 'authRateLimit',
@@ -104,8 +104,8 @@ export const authRateLimiter = rateLimit({
 // Notification mutation rate limiter — 60 requests per IP per 15 minutes
 export const notificationRateLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
-  windowMs: NOTIFICATION_WINDOW_MS,
-  max: NOTIFICATION_MAX_REQUESTS,
+  windowMs: 15 * 60 * 1000,
+  max: 60,
   standardHeaders: true,
   legacyHeaders: false,
   requestPropertyName: 'notificationRateLimit',
@@ -122,8 +122,8 @@ export const notificationRateLimiter = rateLimit({
 // store.
 export const activityAuthRateLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
-  windowMs: ACTIVITY_AUTH_WINDOW_MS,
-  max: ACTIVITY_AUTH_MAX_REQUESTS,
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   requestPropertyName: 'activityAuthRateLimit',
@@ -142,8 +142,8 @@ export const activityAuthRateLimiter = rateLimit({
 
 export const portfolioRateLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
-  windowMs: PORTFOLIO_WINDOW_MS,
-  max: PORTFOLIO_MAX_REQUESTS,
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   requestPropertyName: 'portfolioRateLimit',
