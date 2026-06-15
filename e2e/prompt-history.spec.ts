@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Prompt History & Workspace System', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5175'); // Adjust URL as needed
+    await page.goto('/'); // Uses baseURL from playwright.config.ts
   });
 
   test('should open chatbot and display history UI', async ({ page }) => {
