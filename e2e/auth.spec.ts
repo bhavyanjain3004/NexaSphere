@@ -4,8 +4,9 @@ test.describe('Authentication and Core Flows', () => {
   test('should display login page and allow admin login', async ({ page }) => {
     await page.goto('/admin');
 
-    // Wait for the page to fully load
-    await page.waitForLoadState('networkidle');
+    // Use 'load' — not 'networkidle' — to avoid the /api/performance/vitals
+    // proxy errors keeping the network perpetually busy in CI.
+    await page.waitForLoadState('load');
 
     // Verify login page elements using robust selectors
     const heading = page.getByRole('heading', { name: /admin login/i });
@@ -37,9 +38,7 @@ test.describe('Authentication and Core Flows', () => {
   test('should prevent unauthorized access to protected routes', async ({ page }) => {
     // Attempting to access admin dashboard directly without session
     await page.goto('/admin/dashboard');
-
-    // Wait for navigation to settle
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     // Most apps redirect to login if unauthorized — should still be on an /admin URL
     await expect(page).toHaveURL(/.*\/admin.*/);

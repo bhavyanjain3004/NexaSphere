@@ -17,7 +17,7 @@ test.describe('Journey 5: Admin Event Creation → Website Visibility', () => {
 
     // 1. Login as admin
     await loginPage.goto('/admin');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await expect(loginPage.heading).toBeVisible({ timeout: 10000 });
 
     await loginPage.login(TEST_ADMIN.username, TEST_ADMIN.password);
@@ -44,7 +44,7 @@ test.describe('Journey 5: Admin Event Creation → Website Visibility', () => {
 
     // Navigate to public website
     await landing.goto();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await expect(landing.heroTitle).toBeVisible({ timeout: 10000 });
 
     // Go to events section

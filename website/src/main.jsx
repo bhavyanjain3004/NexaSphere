@@ -74,11 +74,15 @@ createRoot(document.getElementById('root')).render(
 );
 
 // Performance monitoring (Web Vitals) sent to analytics backend
-reportWebVitals((metric) => {
-  const body = JSON.stringify(metric);
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon('/api/performance/vitals', body);
-  } else {
-    fetch('/api/performance/vitals', { body, method: 'POST', keepalive: true });
-  }
-});
+// Skip in E2E test runs — the /api/performance/vitals endpoint is not available
+// in CI and the constant ECONNREFUSED proxy errors prevent networkidle from settling.
+if (!navigator.userAgent.includes('Playwright')) {
+  reportWebVitals((metric) => {
+    const body = JSON.stringify(metric);
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/performance/vitals', body);
+    } else {
+      fetch('/api/performance/vitals', { body, method: 'POST', keepalive: true });
+    }
+  });
+}
