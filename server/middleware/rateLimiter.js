@@ -28,6 +28,7 @@ const FORM_MAX_REQUESTS = parsePositiveInt(process.env.RATE_LIMIT_MAX_REQUESTS, 
 // received undefined and Express silently skipped the middleware entirely.
 // ---------------------------------------------------------------------------
 export const apiRateLimiter = rateLimit({
+  skip: () => process.env.NODE_ENV === 'test',
   windowMs: API_WINDOW_MS,
   max: API_MAX_REQUESTS,
   standardHeaders: true,
@@ -65,6 +66,7 @@ export const apiRateLimiter = rateLimit({
 // Form submission rate limiter — applied to membership, recruitment, core-team
 // ---------------------------------------------------------------------------
 export const formRateLimiter = rateLimit({
+  skip: () => process.env.NODE_ENV === 'test',
   windowMs: FORM_WINDOW_MS,
   max: FORM_MAX_REQUESTS,
   standardHeaders: true,
@@ -87,8 +89,9 @@ export const formRateLimiter = rateLimit({
 
 // Authentication rate limiter — 10 requests per IP per minute
 export const authRateLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
+  skip: () => process.env.NODE_ENV === 'test',
+  windowMs: AUTH_WINDOW_MS,
+  max: AUTH_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
   requestPropertyName: 'authRateLimit',
@@ -100,8 +103,9 @@ export const authRateLimiter = rateLimit({
 
 // Notification mutation rate limiter — 60 requests per IP per 15 minutes
 export const notificationRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 60,
+  skip: () => process.env.NODE_ENV === 'test',
+  windowMs: NOTIFICATION_WINDOW_MS,
+  max: NOTIFICATION_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
   requestPropertyName: 'notificationRateLimit',
@@ -117,8 +121,9 @@ export const notificationRateLimiter = rateLimit({
 // when the server restarts the IP-level window survives in the rate-limit
 // store.
 export const activityAuthRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  skip: () => process.env.NODE_ENV === 'test',
+  windowMs: ACTIVITY_AUTH_WINDOW_MS,
+  max: ACTIVITY_AUTH_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
   requestPropertyName: 'activityAuthRateLimit',
@@ -136,8 +141,9 @@ export const activityAuthRateLimiter = rateLimit({
 });
 
 export const portfolioRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  skip: () => process.env.NODE_ENV === 'test',
+  windowMs: PORTFOLIO_WINDOW_MS,
+  max: PORTFOLIO_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
   requestPropertyName: 'portfolioRateLimit',
