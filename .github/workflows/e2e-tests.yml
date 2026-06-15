@@ -77,6 +77,8 @@ jobs:
           echo "E2E_API_BASE=http://localhost:8080" >> .env
           echo "E2E_API_BASE=http://localhost:8080" >> server/.env
           echo "VITE_API_BASE=http://localhost:8080" >> website/.env
+          echo "VITE_API_PROXY_TARGET=http://localhost:8080" >> website/.env
+          echo "DISABLE_PWA=true" >> website/.env
 
       - name: Start server
         run: |
@@ -110,6 +112,8 @@ jobs:
         timeout-minutes: 20
         env:
           PWTEST_HEADLESS: true
+          VITE_API_PROXY_TARGET: http://localhost:8080
+          DISABLE_PWA: 'true'
 
       - uses: actions/upload-artifact@v4
         if: failure()

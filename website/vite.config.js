@@ -111,9 +111,26 @@ export default defineConfig({
   },
   server: {
     port: 5175,
-    proxy: {
-      '/api': 'http://localhost:8787',
-      '/healthz': 'http://localhost:8787',
-    },
+    proxy: (() => {
+      // Allow CI / other envs to override the API proxy target.
+      // Local dev defaults to the Wrangler Workers dev server on 8787.
+      // CI sets VITE_API_PROXY_TARGET=http://localhost:8080 (Express server).
+      const target = process.env.VITE_API_PROXY_TARGET || 'http://localhost:8787';
+      const proxyOpts = {
+        target,
+        changeOrigin: true,
+        // Silently swallow ECONNREFUSED so Vite stdout stays clean and
+        // networkidle can settle in Playwright even when the backend is down.
+        configure: (proxy) => {
+          proxy.on('error', () => {
+            /* suppress — backend may not be running during frontend-only dev */
+          });
+        },
+      };
+      return {
+        '/api': proxyOpts,
+        '/healthz': proxyOpts,
+      };
+    })(),
   },
 });

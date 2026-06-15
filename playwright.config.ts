@@ -52,6 +52,12 @@ export default defineConfig({
       url: process.env.E2E_BASE_URL || 'http://localhost:5175',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
+      // Forward proxy target and PWA flag so the Vite dev server uses the
+      // correct backend port in CI (8080) instead of the default (8787).
+      env: {
+        VITE_API_PROXY_TARGET: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8787',
+        DISABLE_PWA: process.env.DISABLE_PWA || 'false',
+      },
     },
   ],
 });
