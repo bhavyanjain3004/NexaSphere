@@ -59,11 +59,13 @@ export default function ResourcesPage({ onBack }) {
   }, [resources, searchQuery, selectedCategory, selectedDifficulty]);
 
   const handleVote = (id) => {
+    const hasVoted = votedIds.has(id);
+
+    // Optimistic UI update — reflect vote immediately before API response
     setResources((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
         const votes = r.votes || [];
-        const hasVoted = votedIds.has(id);
         return {
           ...r,
           votes: hasVoted ? votes.slice(0, -1) : [...votes, 'current_user'],
@@ -76,6 +78,31 @@ export default function ResourcesPage({ onBack }) {
       else next.add(id);
       return next;
     });
+
+    // Persist vote to backend — consistent with handleDownload which
+    // also fires a POST to record the action server-side
+    const base = getApiBase();
+    if (base) {
+      apiClient(`${base}/api/resources/${id}/vote`, { method: 'POST' }).catch(() => {
+        // Revert optimistic update on failure
+        setResources((prev) =>
+          prev.map((r) => {
+            if (r.id !== id) return r;
+            const votes = r.votes || [];
+            return {
+              ...r,
+              votes: hasVoted ? [...votes, 'current_user'] : votes.slice(0, -1),
+            };
+          })
+        );
+        setVotedIds((prev) => {
+          const next = new Set(prev);
+          if (hasVoted) next.add(id);
+          else next.delete(id);
+          return next;
+        });
+      });
+    }
   };
 
   const handleDownload = (id) => {
