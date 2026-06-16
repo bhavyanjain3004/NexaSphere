@@ -82,8 +82,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
 
-
-
 validateEnvironment();
 
 const app = express();
@@ -1682,11 +1680,15 @@ app.get('/api/admin/forum/threads', adminAuth, forumController.adminListThreads)
 app.get('/api/mentorship/mentors', mentorshipController.listMentors);
 app.get('/api/mentorship/mentors/:id', mentorshipController.getMentor);
 app.post('/api/mentorship/mentors', mentorshipController.registerMentor);
-app.put('/api/mentorship/mentors/:id', mentorshipController.updateMentor);
+app.put('/api/mentorship/mentors/:id', adminAuth, mentorshipController.updateMentor);
 app.post('/api/mentorship/requests', mentorshipController.requestMentorship);
 app.get('/api/mentorship/requests', mentorshipController.listMentorships);
 app.get('/api/mentorship/requests/:id', mentorshipController.getMentorship);
-app.put('/api/mentorship/requests/:id/status', mentorshipController.updateMentorshipStatus);
+app.put(
+  '/api/mentorship/requests/:id/status',
+  adminAuth,
+  mentorshipController.updateMentorshipStatus
+);
 app.post('/api/mentorship/requests/:id/sessions', mentorshipController.logSession);
 app.get('/api/mentorship/requests/:id/sessions', mentorshipController.listSessions);
 app.post('/api/mentorship/buddy-pairs', mentorshipController.createBuddyPair);
