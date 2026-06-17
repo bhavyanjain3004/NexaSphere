@@ -55,10 +55,16 @@ const links = [
     icon: 'Activity',
   },
   {
-    to: '/dashboard/resources',
-    label: 'Resources',
-    icon: 'FileText',
+    to: '/dashboard/sponsorships',
+    label: 'Sponsorships',
+    icon: 'Handshake',
     requiredScope: 'events:read',
+  },
+  {
+    to: '/dashboard/scheduled-tasks',
+    label: 'Scheduled Tasks',
+    icon: 'Clock',
+    requiredScope: 'settings:admin',
   },
 ];
 
