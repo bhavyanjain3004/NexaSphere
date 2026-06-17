@@ -42,8 +42,7 @@ router.delete(
 router.post('/account-recovery/request', async (req, res) => {
   const { email } = req.body;
 
-  const recovery =
-    await studentAuthService.createRecoveryRequest(email);
+  const recovery = await studentAuthService.createRecoveryRequest(email);
 
   return res.json({
     success: true,
@@ -54,11 +53,7 @@ router.post('/account-recovery/request', async (req, res) => {
 router.post('/account-recovery/verify', async (req, res) => {
   const { savedCode, enteredCode } = req.body;
 
-  const valid =
-    studentAuthService.verifyRecoveryCode(
-      savedCode,
-      enteredCode
-    );
+  const valid = studentAuthService.verifyRecoveryCode(savedCode, enteredCode);
 
   return res.json({
     success: valid,

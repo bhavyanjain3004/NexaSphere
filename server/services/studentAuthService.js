@@ -46,22 +46,22 @@ export const studentAuthService = {
   },
 
   generateRecoveryCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-},
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  },
 
-async createRecoveryRequest(email) {
-  const code = this.generateRecoveryCode();
+  async createRecoveryRequest(email) {
+    const code = this.generateRecoveryCode();
 
-  return {
-    email,
-    code,
-    createdAt: new Date(),
-  };
-},
+    return {
+      email,
+      code,
+      createdAt: new Date(),
+    };
+  },
 
-verifyRecoveryCode(savedCode, enteredCode) {
-  return savedCode === enteredCode;
-},
+  verifyRecoveryCode(savedCode, enteredCode) {
+    return savedCode === enteredCode;
+  },
 
   generateToken(user) {
     const payload = {
