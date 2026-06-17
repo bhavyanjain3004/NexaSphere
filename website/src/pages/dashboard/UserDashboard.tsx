@@ -147,10 +147,14 @@ export default function UserDashboard() {
     // hardcoded as 'user_123' so all users see identical placeholder data.
     setIsDemo(true);
 
+    const safeJson = (r: Response) => {
+      if (!r.ok) throw new Error(`Dashboard API error: ${r.status} ${r.statusText}`);
+      return r.json();
+    };
     Promise.all([
-      fetch(`${base}/api/dashboard/profile/${userId}`).then((r) => r.json()),
-      fetch(`${base}/api/dashboard/quests/${userId}`).then((r) => r.json()),
-      fetch(`${base}/api/dashboard/leaderboard`).then((r) => r.json()),
+      fetch(`${base}/api/dashboard/profile/${userId}`).then(safeJson),
+      fetch(`${base}/api/dashboard/quests/${userId}`).then(safeJson),
+      fetch(`${base}/api/dashboard/leaderboard`).then(safeJson),
     ])
       .then(([profile, quests, leaderboard]) => {
         // isDemo stays true — userId is still hardcoded as 'user_123'
