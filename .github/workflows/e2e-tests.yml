@@ -43,6 +43,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -57,6 +66,10 @@ jobs:
 
       - name: Install Playwright browsers
         run: npx playwright install ${{ matrix.browser }} --with-deps
+
+      - name: Install Accessibility Testing Tools
+        # Technical Requirement: axe-core integration for automated testing
+        run: npm install @axe-core/playwright
 
       - name: Set up test environment
         run: |
@@ -77,6 +90,8 @@ jobs:
           NODE_ENV: test
           DATABASE_URL: postgresql://nexasphere:nexasphere@localhost:5432/nexasphere_test
           PORT: 8080
+          CORS_ORIGIN: http://localhost:5175
+          ADMIN_EVENT_PASSWORD: StrongEventPassword123!
         timeout-minutes: 2
 
       - name: Wait for server

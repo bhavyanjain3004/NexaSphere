@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import apiClient from '../../utils/apiClient.js';
+import { getApiBase } from '../../utils/runtimeConfig';
 import { projectsData } from '../../data/projectsData';
 import { roadmapData } from '../../data/roadmapData';
 import { RepoCardSkeleton } from '../ui/skeleton/RepoCardSkeleton';
@@ -81,7 +82,7 @@ export default function PortfolioBuilder() {
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
+      const base = getApiBase();
       const url = base ? `${base}/api/portfolio/${username}` : `/api/portfolio/${username}`;
       const data = await apiClient(url);
       if (data) {
@@ -143,7 +144,7 @@ export default function PortfolioBuilder() {
         customProjects,
       };
 
-      const base = (import.meta?.env?.VITE_API_BASE || '').replace(/\/+$/, '');
+      const base = getApiBase();
       const url = base ? `${base}/api/portfolio` : `/api/portfolio`;
 
       const data = await apiClient(url, {
@@ -259,9 +260,13 @@ export default function PortfolioBuilder() {
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(getPortfolioUrl());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard
+      .writeText(getPortfolioUrl())
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {});
   };
 
   return (

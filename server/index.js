@@ -7,10 +7,10 @@ import helmet from 'helmet';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import fs, { promises as fsp } from 'fs';
 import { body, validationResult } from 'express-validator';
 import { EventEmitter } from 'events';
 import { google } from 'googleapis';
-import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
@@ -27,6 +27,7 @@ import formsRouter from './routes/forms.js';
 import portfolioRouter from './routes/portfolio.js';
 import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
+import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { tracingMiddleware } from './middleware/tracingMiddleware.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -73,24 +74,16 @@ import { xssSanitizer } from './middleware/xssSanitizer.js';
 import { tierRateLimiter } from './middleware/tierRateLimiter.js';
 import compression from 'compression';
 import syncRouter from './routes/sync.js';
+import multer from 'multer';
+import * as resourcesController from './controllers/resourcesController.js';
+import scheduledTasksRouter from './routes/scheduledTasks.js';
+import { schedulerService } from './services/schedulerService.js';
 
 validateLimiters();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTENT_FILE = path.join(__dirname, 'data', 'content.json');
-
-const REQUIRED_ENV_VARS = ['CORS_ORIGIN', 'ADMIN_EVENT_PASSWORD'];
-
-function validateEnvironment() {
-  const missing = REQUIRED_ENV_VARS.filter((env) => !process.env[env]);
-
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
-
-  console.log('Environment validation passed');
-}
 
 validateEnvironment();
 
@@ -292,6 +285,7 @@ app.use(performanceMonitor);
 app.use(cookieParser());
 
 // Global API rate limiter — protects all /api routes from request flooding
+app.use('/api', apiRateLimiter);
 app.use('/api', tierRateLimiter());
 
 function requestLogger(req, res, next) {
@@ -332,7 +326,7 @@ app.use('/api', notificationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/', syncRouter);
 
-const adminAuth = adminAuthMiddleware.requireAdmin;
+const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
 
 const defaultContent = {
   events: [
@@ -374,15 +368,62 @@ function requiredStrongPassword(name) {
 
 const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
 
+// ── File Upload Configuration ──
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+try {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+} catch (_) {}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname) || '';
+    cb(null, `${uniqueSuffix}${ext}`);
+  },
+});
+
+const fileFilter = (_req, file, cb) => {
+  const allowedMimes = [
+    'application/pdf',
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+    'image/webp',
+    'application/zip',
+    'application/x-zip-compressed',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain',
+    'text/markdown',
+    'application/json',
+  ];
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`File type ${file.mimetype} not allowed`), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+});
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(UPLOADS_DIR));
+
 getPublicAppUrl();
 
 async function ensureContentFile() {
   const dir = path.dirname(CONTENT_FILE);
-  await fs.mkdir(dir, { recursive: true });
+  await fsp.mkdir(dir, { recursive: true });
   try {
-    await fs.access(CONTENT_FILE);
+    await fsp.access(CONTENT_FILE);
   } catch {
-    await fs.writeFile(CONTENT_FILE, JSON.stringify(defaultContent, null, 2), 'utf8');
+    await fsp.writeFile(CONTENT_FILE, JSON.stringify(defaultContent, null, 2), 'utf8');
   }
 }
 const fileMutex = new Mutex();
@@ -393,13 +434,13 @@ export async function runWithFileLock(callback) {
 
 async function readContent() {
   await ensureContentFile();
-  const raw = await fs.readFile(CONTENT_FILE, 'utf8');
+  const raw = await fsp.readFile(CONTENT_FILE, 'utf8');
   return JSON.parse(raw);
 }
 
 async function writeContent(content) {
   await ensureContentFile();
-  await fs.writeFile(CONTENT_FILE, JSON.stringify(content, null, 2), 'utf8');
+  await fsp.writeFile(CONTENT_FILE, JSON.stringify(content, null, 2), 'utf8');
 }
 
 let contentLock = Promise.resolve();
@@ -988,6 +1029,7 @@ function clearActivityAuthAttempts(ip) {
 // Admin Analytics & Metrics (mounted with admin auth)
 app.use('/api/admin/analytics', adminAuth, analyticsRouter);
 app.use('/api/admin/metrics', adminAuth, adminStreamRouter);
+app.use('/api/admin/scheduled-tasks', adminAuth, scheduledTasksRouter);
 
 // OAuth / SSO Student Auth Endpoints
 app.get('/api/auth/google', studentAuthController.googleAuth);
@@ -1007,17 +1049,17 @@ app.delete('/api/admin/events/:id', adminAuth, eventsController.adminDeleteEvent
 app.get('/api/streams', streamController.listStreams);
 app.get('/api/streams/event/:eventId', streamController.getStreamByEvent);
 app.get('/api/streams/:id', streamController.getStream);
-app.post('/api/streams', streamController.createStream);
-app.put('/api/streams/:id', streamController.updateStream);
-app.patch('/api/streams/:id/status', streamController.setStreamStatus);
-app.delete('/api/streams/:id', streamController.deleteStream);
+app.post('/api/streams', adminAuth, streamController.createStream);
+app.put('/api/streams/:id', adminAuth, streamController.updateStream);
+app.patch('/api/streams/:id/status', adminAuth, streamController.setStreamStatus);
+app.delete('/api/streams/:id', adminAuth, streamController.deleteStream);
 app.post('/api/streams/:id/chat', streamController.addChatMessage);
 app.get('/api/streams/:id/chat', streamController.listChatMessages);
 app.post('/api/streams/:id/polls', streamController.createPoll);
 app.get('/api/streams/:id/polls', streamController.listPolls);
 app.post('/api/streams/polls/:pollId/vote', streamController.votePoll);
-app.patch('/api/streams/polls/:pollId/close', streamController.closePoll);
-app.patch('/api/streams/chat/:messageId/moderate', streamController.moderateChatMessage);
+app.patch('/api/streams/polls/:pollId/close', adminAuth, streamController.closePoll);
+app.patch('/api/streams/chat/:messageId/moderate', adminAuth, streamController.moderateChatMessage);
 app.get('/api/admin/streams', adminAuth, streamController.adminListAll);
 
 // Public listings
@@ -1236,7 +1278,6 @@ const validatePushSubscription = [
 
 app.post(
   '/api/notifications/subscribe',
-  adminAuth,
   notificationRateLimiter,
   validatePushSubscription,
   async (req, res) => {
@@ -1259,7 +1300,6 @@ app.post(
 
 app.post(
   '/api/notifications/unsubscribe',
-  adminAuth,
   notificationRateLimiter,
   validatePushSubscription,
   async (req, res) => {
@@ -1642,11 +1682,15 @@ app.get('/api/admin/forum/threads', adminAuth, forumController.adminListThreads)
 app.get('/api/mentorship/mentors', mentorshipController.listMentors);
 app.get('/api/mentorship/mentors/:id', mentorshipController.getMentor);
 app.post('/api/mentorship/mentors', mentorshipController.registerMentor);
-app.put('/api/mentorship/mentors/:id', mentorshipController.updateMentor);
+app.put('/api/mentorship/mentors/:id', adminAuth, mentorshipController.updateMentor);
 app.post('/api/mentorship/requests', mentorshipController.requestMentorship);
 app.get('/api/mentorship/requests', mentorshipController.listMentorships);
 app.get('/api/mentorship/requests/:id', mentorshipController.getMentorship);
-app.put('/api/mentorship/requests/:id/status', mentorshipController.updateMentorshipStatus);
+app.put(
+  '/api/mentorship/requests/:id/status',
+  adminAuth,
+  mentorshipController.updateMentorshipStatus
+);
 app.post('/api/mentorship/requests/:id/sessions', mentorshipController.logSession);
 app.get('/api/mentorship/requests/:id/sessions', mentorshipController.listSessions);
 app.post('/api/mentorship/buddy-pairs', mentorshipController.createBuddyPair);
@@ -1658,6 +1702,29 @@ app.get('/api/admin/mentors', adminAuth, mentorshipController.adminListMentors);
 app.get('/api/search', searchController.search);
 app.get('/api/search/trending', searchController.trending);
 app.get('/api/recommendations', searchController.recommendations);
+// ── Resource Library Routes ──
+// Public resource endpoints
+app.get('/api/resources', resourcesController.listResources);
+app.get('/api/resources/:id', resourcesController.getResource);
+app.post('/api/resources', resourcesController.createResource);
+app.post('/api/resources/:id/vote', resourcesController.voteResource);
+app.post('/api/resources/:id/download', resourcesController.downloadResource);
+app.post('/api/resources/:id/download-track', resourcesController.downloadResource);
+
+// Student resource upload (authenticated)
+app.post(
+  '/api/resources/upload',
+  requireStudentAuth,
+  upload.single('file'),
+  resourcesController.uploadFile
+);
+
+// Admin resource management
+app.get('/api/admin/resources', adminAuth, resourcesController.listResources);
+app.post('/api/admin/resources', adminAuth, resourcesController.createResource);
+app.put('/api/admin/resources/:id', adminAuth, resourcesController.updateResource);
+app.delete('/api/admin/resources/:id', adminAuth, resourcesController.deleteResource);
+app.patch('/api/admin/resources/:id/moderate', adminAuth, resourcesController.moderateResource);
 // Must be registered after all routes.
 app.use(notFoundHandler);
 addSentryErrorHandler(app);
@@ -1683,14 +1750,17 @@ if (process.env.NODE_ENV !== 'test') {
   if (!process.env.VERCEL) {
     const boot = HAS_SUPABASE ? studentUsersRepository.ensureSchema() : ensureContentFile();
     boot.then(() => {
+      loadPersistedPushSubscriptions();
       server = app.listen(port, () => {
         console.log(`NexaSphere server listening on http://localhost:${port}`);
+        schedulerService.init();
       });
     });
   } else {
     loadPersistedPushSubscriptions();
     server = app.listen(port, () => {
       console.log(`NexaSphere server listening on http://localhost:${port}`);
+      schedulerService.init();
     });
     initializeSocketIO(server);
   }

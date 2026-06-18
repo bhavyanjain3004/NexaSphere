@@ -15,7 +15,7 @@ const OptionalText = (max) =>
     .trim()
     .max(max)
     .optional()
-    .transform((value) => (value ? value.trim() : undefined));
+    .transform((value) => value || undefined);
 
 const TextList = z
   .union([z.array(z.string()), z.string()])
@@ -54,7 +54,7 @@ const CommonIdentitySchema = z
 
 const RecruitmentExtrasSchema = z
   .object({
-    year: z.string().trim().max(40).optional(),
+    year: z.string({ message: 'Year is required' }).trim().min(1, 'Year is required').max(40),
     role: OptionalText(80),
     interests: TextList,
     skills: OptionalText(400),
@@ -78,7 +78,11 @@ const MembershipExtrasSchema = z
   .object({
     rollNumber: OptionalText(40),
     course: OptionalText(80),
-    semester: z.string().trim().min(1, 'Semester is required').max(40),
+    semester: z
+      .string({ message: 'Semester is required' })
+      .trim()
+      .min(1, 'Semester is required')
+      .max(40),
     groups: TextList,
     whyJoin: z.string().trim().max(1200).optional(),
   })
@@ -107,6 +111,13 @@ function normalizeBase(data) {
 
 const recruitmentSubmissionSchema = CommonIdentitySchema.merge(RecruitmentExtrasSchema)
   .superRefine((data, ctx) => {
+    if (!data.collegeEmail && !data.email) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['collegeEmail'],
+        message: 'Email address is required',
+      });
+    }
     if (!String(data.year || '').trim()) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['year'], message: 'Year is required' });
     }
@@ -147,6 +158,13 @@ const coreTeamApplicationSchema = recruitmentSubmissionSchema;
 
 const membershipSubmissionSchema = CommonIdentitySchema.merge(MembershipExtrasSchema)
   .superRefine((data, ctx) => {
+    if (!data.collegeEmail && !data.email) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['collegeEmail'],
+        message: 'Email address is required',
+      });
+    }
     if (!data.reason && !data.whyJoin) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

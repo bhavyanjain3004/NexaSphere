@@ -10,10 +10,11 @@ import {
   getConnectedSSEClientsCount,
 } from '../services/sseService.js';
 import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
+import { apiRateLimiter } from '../middleware/rateLimiter.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
-const requireAdmin = adminAuthMiddleware.requireAdmin;
+const requireAdmin = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
 
 /**
  * SSE stream endpoint - real-time updates for admin
@@ -28,6 +29,9 @@ router.get('/stream', requireAdmin, (req, res) => {
 
   logger.info('Admin connected to SSE stream', { adminId });
   addSSEClient(res, req.adminSession);
+
+  // Guard against writing to an already-ended response (e.g. max capacity reached)
+  if (res.writableEnded) return;
 
   // Initialize headers and hand off the response to the SSE service
   setupSSEHeaders(req, res, () => {

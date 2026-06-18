@@ -12,9 +12,12 @@ const TABS = [
   'Projects',
   'Roadmaps',
   'Portfolio',
+  'Blog',
+  'Resources',
   'Gamification',
   'Forum',
   'Mentorship',
+  'Sponsors',
   'About',
   'Core Team',
   'Contact',
@@ -61,13 +64,13 @@ function BookmarkToggle({ onToggle }) {
 export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onToggleBookmarks }) {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
-  const [compact, setCompact] = useState(window.innerWidth <= 790);
+  const [compact, setCompact] = useState(window.innerWidth <= 1200);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const s = () => setScrolled(window.scrollY > 20);
     const r = () => {
-      const isCompact = window.innerWidth <= 790;
+      const isCompact = window.innerWidth <= 1200;
       setCompact(isCompact);
       if (!isCompact) setMenuOpen(false);
     };

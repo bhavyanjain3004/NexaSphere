@@ -10,7 +10,7 @@ function DashboardCardSkeleton({ count = 3 }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {Array.from({ length: count }).map((_, i) => (
         <div
-          key={i}
+          key={`skeleton-${i}`}
           style={{
             padding: '12px',
             background: 'rgba(255,255,255,0.02)',
@@ -134,7 +134,9 @@ export default function DashboardPage({ onBack }) {
         setRecommendations(data.recommended_events || []);
       }
     } catch (e) {
-      console.error(e);
+      if (import.meta.env.DEV) {
+        console.error('[DashboardPage] Failed to fetch recommendations:', e.message);
+      }
     } finally {
       setLoadingRecs(false);
     }
@@ -237,7 +239,7 @@ export default function DashboardPage({ onBack }) {
               >
                 {recommendations.map((rec, i) => (
                   <div
-                    key={i}
+                    key={rec.id ?? rec.title ?? i}
                     style={{
                       padding: '12px',
                       background: 'rgba(255,255,255,0.02)',
