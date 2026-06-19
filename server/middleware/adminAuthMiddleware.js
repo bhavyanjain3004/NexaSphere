@@ -9,6 +9,7 @@ import { getScopesForRole } from '../config/rbac.js';
 
 // lgtm[js/weak-cryptographic-algorithm]
 function safeEqual(a, b) {
+  if (!a || !b) return false;
   const hashA = crypto.createHash('sha256').update(String(a)).digest();
   const hashB = crypto.createHash('sha256').update(String(b)).digest();
 
@@ -213,6 +214,11 @@ async function requireAdmin(req, res, next) {
     }
 
     const session = JSON.parse(sessionJson);
+
+    // CRITICAL SECURITY FIX: Use constant-time comparison to prevent timing side-channel attacks on token validation
+    if (!safeEqual(tokenHash, session.token)) {
+      return res.status(401).json({ error: 'Unauthorized: Token signature mismatch' });
+    }
 
     // Double-check expiry even though Redis TTL should auto-evict
     if (new Date(session.expiresAt) <= new Date()) {
