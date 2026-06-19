@@ -15,6 +15,7 @@ import { portfolioRepository } from '../repositories/portfolioRepository.js';
 import { achievementsRepository } from '../repositories/achievementsRepository.js';
 import { portfolioService } from '../services/portfolioService.js';
 import * as sponsorshipsController from '../controllers/sponsorshipsController.js';
+import { achievementSchema } from '../validators/portfolioSchemas.js';
 
 const router = Router();
 
@@ -205,15 +206,12 @@ router.post(
       const username = String(req.params.username || '')
         .trim()
         .toLowerCase();
-      const { name, description, tier, iconUrl, source } = req.body;
-      if (!name) return res.status(400).json({ error: 'Achievement name is required' });
-      const achievement = await portfolioService.awardAchievement(username, {
-        name: String(name).trim().slice(0, 120),
-        description: description ? String(description).trim().slice(0, 1000) : null,
-        tier: tier ? String(tier).trim().slice(0, 40) : 'bronze',
-        iconUrl: iconUrl ? String(iconUrl).trim().slice(0, 500) : null,
-        source: source ? String(source).trim().slice(0, 60) : 'admin',
-      });
+      const validated = achievementSchema.safeParse(req.body);
+      if (!validated.success) {
+        return res.status(400).json({ error: validated.error.errors[0].message });
+      }
+
+      const achievement = await portfolioService.awardAchievement(username, validated.data);
       return res.status(201).json({ achievement });
     } catch (err) {
       return res.status(500).json({ error: err.message });
