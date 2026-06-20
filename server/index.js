@@ -93,7 +93,7 @@ import * as backupController from './controllers/backupController.js';
 import scheduledTasksRouter from './routes/scheduledTasks.js';
 import financialsRouter from './routes/financials.js';
 import { schedulerService } from './services/schedulerService.js';
-import { learningPathService } from './services/learningPathService.js';
+import recommendationsRouter from './routes/recommendations.js';
 
 validateLimiters();
 
@@ -392,7 +392,7 @@ app.use('/', notificationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api', learningPathRouter);
 app.use('/', syncRouter);
-app.use('/', featureFlagsRouter);
+app.use('/api/recommendations', recommendationsRouter);
 
 const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
 
