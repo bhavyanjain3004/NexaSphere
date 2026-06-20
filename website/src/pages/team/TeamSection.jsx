@@ -31,15 +31,31 @@ function MemberCard({ member, idx, onClick }) {
     c.style.transform = '';
     c.style.animationPlayState = '';
   };
+  const clickTimerRef = useRef(null);
+  const animTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+      if (animTimerRef.current) clearTimeout(animTimerRef.current);
+    };
+  }, []);
+
   const click = () => {
     const c = ref.current;
     if (c) {
       c.style.transform = 'scale(.9)';
-      setTimeout(() => {
-        c.style.transform = '';
+      if (animTimerRef.current) clearTimeout(animTimerRef.current);
+      animTimerRef.current = setTimeout(() => {
+        if (c) c.style.transform = '';
+        animTimerRef.current = null;
       }, 140);
     }
-    setTimeout(() => onClick(member), 110);
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      onClick(member);
+      clickTimerRef.current = null;
+    }, 110);
   };
 
   return (
