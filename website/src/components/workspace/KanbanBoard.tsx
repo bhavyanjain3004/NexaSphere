@@ -442,6 +442,12 @@ export default function KanbanBoard({
             }
           }
         );
+      } else {
+        dispatch({ type: 'REMOVE_TASK', payload: tempId });
+        dispatch({
+          type: 'ROLLBACK',
+          payload: 'Not connected. Task could not be created.',
+        });
       }
     },
     [newTaskTitle, socket, roomId]
