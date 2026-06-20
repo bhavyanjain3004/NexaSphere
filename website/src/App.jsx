@@ -114,10 +114,7 @@ const LiveStreamPage = lazy(() => import('./pages/streaming/LiveStreamPage'));
 const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
 const NotificationHistoryPage = lazy(() => import('./pages/notifications/NotificationHistoryPage'));
 const SponsorsPage = lazy(() => import('./pages/sponsors/SponsorsPage'));
-const RecommendationsPage = lazy(() => import('./pages/resume/RecommendationsPage'));
-
-
-const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage')); //issue #1861
+const ResourcesPage = lazy(() => import('./pages/resources/ResourcesPage'));
 const MNH = 88,
   DNH = 64;
 
