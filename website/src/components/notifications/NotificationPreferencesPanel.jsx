@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../utils/apiClient';
+import { useStudentAuth } from '../../context/StudentAuthContext';
 
 const CATEGORIES = [
   { key: 'events', label: 'Event Updates', desc: 'New events, registration openings' },
@@ -17,15 +18,18 @@ const CHANNELS = [
   { key: 'email', label: 'Email', desc: 'Email notifications' },
 ];
 
-export default function NotificationPreferencesPanel({ userId = 'global', onClose }) {
+export default function NotificationPreferencesPanel({ userId, onClose }) {
+  const { user: authUser } = useStudentAuth();
+  const effectiveUserId = userId ?? authUser?.sub ?? authUser?.id;
   const [prefs, setPrefs] = useState({});
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    if (!effectiveUserId) return;
     (async () => {
       try {
-        const data = await apiClient(`/api/notifications/preferences?userId=${userId}`);
+        const data = await apiClient(`/api/notifications/preferences?userId=${effectiveUserId}`);
         const map = {};
         for (const p of data.preferences || []) {
           map[p.category] = { email: p.email, push: p.push, in_app: p.in_app };
@@ -36,7 +40,7 @@ export default function NotificationPreferencesPanel({ userId = 'global', onClos
       }
       setLoaded(true);
     })();
-  }, [userId]);
+  }, [effectiveUserId]);
 
   const toggle = useCallback((category, channel) => {
     setPrefs((prev) => {
@@ -55,13 +59,13 @@ export default function NotificationPreferencesPanel({ userId = 'global', onClos
       await apiClient('/api/notifications/preferences/bulk', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, preferences: bulk }),
+        body: JSON.stringify({ userId: effectiveUserId, preferences: bulk }),
       });
     } catch {
       // ignore
     }
     setSaving(false);
-  }, [prefs, userId]);
+  }, [prefs, effectiveUserId]);
 
   if (!loaded)
     return (

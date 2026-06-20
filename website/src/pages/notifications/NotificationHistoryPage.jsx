@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/apiClient';
 import { formatRelativeTime } from '../../utils/formatRelativeTime';
+import { useStudentAuth } from '../../context/StudentAuthContext';
+
 const TYPE_ICONS = {
   message: '💬',
   connection: '🔗',
@@ -9,7 +11,10 @@ const TYPE_ICONS = {
   system: '🔔',
 };
 
-export default function NotificationHistoryPage({ userId = 'global' }) {
+export default function NotificationHistoryPage({ userId }) {
+  const { user: authUser } = useStudentAuth();
+  const effectiveUserId = userId ?? authUser?.sub ?? authUser?.id;
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
@@ -20,11 +25,12 @@ export default function NotificationHistoryPage({ userId = 'global' }) {
 
   const fetchNotifications = useCallback(
     async (reset = false) => {
+      if (!effectiveUserId) return;
       setLoading(true);
       try {
         const currentOffset = reset ? 0 : offset;
         const data = await apiClient(
-          `/api/notifications?userId=${userId}&offset=${currentOffset}&limit=${limit}`
+          `/api/notifications?userId=${effectiveUserId}&offset=${currentOffset}&limit=${limit}`
         );
         const list = data.notifications || [];
         if (reset) {
@@ -39,13 +45,13 @@ export default function NotificationHistoryPage({ userId = 'global' }) {
       }
       setLoading(false);
     },
-    [userId, offset]
+    [effectiveUserId, offset]
   );
 
   useEffect(() => {
     setOffset(0);
     fetchNotifications(true);
-  }, [userId]);
+  }, [effectiveUserId]);
 
   const markRead = useCallback(
     async (id) => {
@@ -54,13 +60,13 @@ export default function NotificationHistoryPage({ userId = 'global' }) {
         await apiClient('/api/notifications/mark-read', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, userId }),
+          body: JSON.stringify({ id, userId: effectiveUserId }),
         });
       } catch {
         /* ignore */
       }
     },
-    [userId]
+    [effectiveUserId]
   );
 
   const markAllRead = useCallback(async () => {
@@ -69,22 +75,22 @@ export default function NotificationHistoryPage({ userId = 'global' }) {
       await apiClient('/api/notifications/mark-all-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId: effectiveUserId }),
       });
     } catch {
       /* ignore */
     }
-  }, [userId]);
+  }, [effectiveUserId]);
 
   const clearAll = useCallback(async () => {
     setNotifications([]);
     setHasMore(false);
     try {
-      await apiClient(`/api/notifications?userId=${userId}`, { method: 'DELETE' });
+      await apiClient(`/api/notifications?userId=${effectiveUserId}`, { method: 'DELETE' });
     } catch {
       /* ignore */
     }
-  }, [userId]);
+  }, [effectiveUserId]);
 
   const filteredList = filter === 'all' ? notifications : notifications.filter((n) => !n.isRead);
 
