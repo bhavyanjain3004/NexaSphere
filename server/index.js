@@ -81,7 +81,7 @@ import multer from 'multer';
 import * as resourcesController from './controllers/resourcesController.js';
 import * as backupController from './controllers/backupController.js';
 import scheduledTasksRouter from './routes/scheduledTasks.js';
-import healthDashboardRouter from './routes/healthDashboard.js';
+import moderationRouter from './routes/moderation.js';
 import { schedulerService } from './services/schedulerService.js';
 import dynamicPricingRouter from './routes/dynamicPricing.js';
 
@@ -341,7 +341,7 @@ app.use('/api', portfolioRouter);
 app.use('/api/portfolio-export', portfolioExportRouter);
 app.use('/api', notificationsRouter);
 app.use('/api/admin', adminRouter);
-app.use('/api/finance', financialRouter);
+app.use('/api', moderationRouter);
 app.use('/', syncRouter);
 app.use('/api/pricing', dynamicPricingRouter);
 
