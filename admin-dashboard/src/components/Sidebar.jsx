@@ -56,9 +56,15 @@ const links = [
     icon: 'Activity',
   },
   {
-    to: '/dashboard/impersonate',
-    label: 'Impersonate',
-    icon: 'Users',
+    to: '/dashboard/advanced-analytics',
+    label: 'Adv. Analytics',
+    icon: 'BarChart',
+    requiredScope: 'events:read',
+  },
+  {
+    to: '/dashboard/scheduled-tasks',
+    label: 'Scheduled Tasks',
+    icon: 'Clock',
     requiredScope: 'settings:admin',
   },
 ];
