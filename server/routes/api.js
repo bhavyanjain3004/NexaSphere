@@ -51,19 +51,24 @@ router.delete(
 );
 router.post('/account-recovery/request', async (req, res) => {
   const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
 
-  const recovery = await studentAuthService.createRecoveryRequest(email);
+  await studentAuthService.createRecoveryRequest(email);
 
   return res.json({
     success: true,
-    message: 'Recovery code generated',
-    recovery,
+    message: 'If an account with that email exists, a recovery code has been sent.',
   });
 });
 router.post('/account-recovery/verify', async (req, res) => {
-  const { savedCode, enteredCode } = req.body;
+  const { email, enteredCode } = req.body;
+  if (!email || !enteredCode) {
+    return res.status(400).json({ error: 'Email and code are required' });
+  }
 
-  const valid = studentAuthService.verifyRecoveryCode(savedCode, enteredCode);
+  const valid = await studentAuthService.verifyRecoveryCode(email, enteredCode);
 
   return res.json({
     success: valid,

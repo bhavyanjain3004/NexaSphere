@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { studentUsersRepository } from '../repositories/studentUsersRepository.js';
 
@@ -52,18 +53,24 @@ export const studentAuthService = {
     return Math.floor(100000 + Math.random() * 900000).toString();
   },
 
-  async createRecoveryRequest(email) {
-    const code = this.generateRecoveryCode();
-
-    return {
-      email,
-      code,
-      createdAt: new Date(),
-    };
+  hashRecoveryCode(code) {
+    return crypto.createHash('sha256').update(code).digest('hex');
   },
 
-  verifyRecoveryCode(savedCode, enteredCode) {
-    return savedCode === enteredCode;
+  async createRecoveryRequest(email) {
+    const code = this.generateRecoveryCode();
+    const hashed = this.hashRecoveryCode(code);
+    await studentUsersRepository.saveRecoveryCode(email, hashed);
+    return { email, code };
+  },
+
+  async verifyRecoveryCode(email, enteredCode) {
+    const hashed = this.hashRecoveryCode(enteredCode);
+    const stored = await studentUsersRepository.getRecoveryCode(email);
+    if (!stored) return false;
+    if (stored.code_hash !== hashed) return false;
+    await studentUsersRepository.markRecoveryCodeUsed(stored.id);
+    return true;
   },
 
   generateToken(user) {

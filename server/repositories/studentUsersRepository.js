@@ -134,26 +134,50 @@ export const studentUsersRepository = {
     });
   },
 
-  async updateTheme(id, theme) {
+  async saveRecoveryCode(email, hashedCode) {
+    if (!HAS_SUPABASE) return null;
+    return withDb(async (client) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS recovery_codes (
+          id SERIAL PRIMARY KEY,
+          email VARCHAR(255) NOT NULL,
+          code_hash VARCHAR(255) NOT NULL,
+          expires_at TIMESTAMPTZ NOT NULL,
+          used BOOLEAN NOT NULL DEFAULT false,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await client.query(
+        `INSERT INTO recovery_codes (email, code_hash, expires_at)
+         VALUES ($1, $2, NOW() + INTERVAL '15 minutes')`,
+        [email, hashedCode]
+      );
+      return true;
+    });
+  },
+
+  async getRecoveryCode(email) {
     if (!HAS_SUPABASE) return null;
     return withDb(async (client) => {
       const { rows } = await client.query(
-        'UPDATE student_users SET theme = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-        [theme, id]
+        `SELECT id, code_hash, expires_at
+         FROM recovery_codes
+         WHERE email = $1 AND used = false AND expires_at > NOW()
+         ORDER BY created_at DESC LIMIT 1`,
+        [email]
       );
       return rows[0] || null;
     });
   },
 
-  async saveRecoveryCode(email, code) {
-    return {
-      email,
-      code,
-    };
-  },
-
-  async getRecoveryCode(email) {
-    return null;
+  async markRecoveryCodeUsed(id) {
+    if (!HAS_SUPABASE) return;
+    return withDb(async (client) => {
+      await client.query(
+        'UPDATE recovery_codes SET used = true WHERE id = $1',
+        [id]
+      );
+    });
   },
 
   async listAll() {
