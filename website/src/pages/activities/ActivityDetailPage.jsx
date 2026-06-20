@@ -16,7 +16,7 @@ function Counter({ value, suffix = '' }) {
       ([entry]) => {
         if (entry.isIntersecting && !started.current) {
           started.current = true;
-          const num = parseInt(value) || 0;
+          const num = parseInt(value, 10) || 0;
           const dur = 1200;
           const step = 16;
           const inc = num / (dur / step);
