@@ -1083,6 +1083,80 @@ export const api = {
         body: JSON.stringify(payload),
       }),
     analytics: (eventId) => fetchWithAuth(`/api/admin/events/${eventId}/analytics`),
+
+    // Offline Check-in Methods
+    downloadOfflineList: async (eventId) => {
+      const result = await fetchWithAuth(`/api/admin/events/${eventId}/registrations?limit=10000`);
+      if (result && result.registrations) {
+        localStorage.setItem(
+          `ns_offline_attendees_${eventId}`,
+          JSON.stringify(result.registrations)
+        );
+        return result.registrations;
+      }
+      return [];
+    },
+    getOfflineList: (eventId) => {
+      return safeJsonParse(localStorage.getItem(`ns_offline_attendees_${eventId}`), []);
+    },
+    getPendingSync: (eventId) => {
+      return safeJsonParse(localStorage.getItem(`ns_offline_pending_${eventId}`), []);
+    },
+    markOfflineAttendance: (eventId, email) => {
+      const attendees = safeJsonParse(localStorage.getItem(`ns_offline_attendees_${eventId}`), []);
+      const index = attendees.findIndex((a) => a.email.toLowerCase() === email.toLowerCase());
+      let attendeeData = null;
+      if (index >= 0) {
+        if (attendees[index].attended) {
+          return { error: 'Already marked present', already_attended: true };
+        }
+        attendees[index].attended = true;
+        attendees[index].attended_at = new Date().toISOString();
+        attendeeData = attendees[index];
+        localStorage.setItem(`ns_offline_attendees_${eventId}`, JSON.stringify(attendees));
+      } else {
+        return { error: 'Attendee not found in offline list' };
+      }
+
+      const pending = safeJsonParse(localStorage.getItem(`ns_offline_pending_${eventId}`), []);
+      pending.push({ email, timestamp: new Date().toISOString() });
+      localStorage.setItem(`ns_offline_pending_${eventId}`, JSON.stringify(pending));
+
+      return {
+        already_attended: false,
+        full_name: attendeeData.full_name,
+        email: attendeeData.email,
+      };
+    },
+    syncPending: async (eventId) => {
+      const pending = safeJsonParse(localStorage.getItem(`ns_offline_pending_${eventId}`), []);
+      if (pending.length === 0) return { success: true, count: 0 };
+
+      let successCount = 0;
+      let errors = [];
+      let remaining = [];
+
+      for (const item of pending) {
+        try {
+          await fetchWithAuth(`/api/admin/events/${eventId}/attendance`, {
+            method: 'POST',
+            body: JSON.stringify({ email: item.email }),
+          });
+          successCount++;
+        } catch (e) {
+          errors.push(e.message);
+          remaining.push(item);
+        }
+      }
+
+      if (remaining.length === 0) {
+        localStorage.removeItem(`ns_offline_pending_${eventId}`);
+      } else {
+        localStorage.setItem(`ns_offline_pending_${eventId}`, JSON.stringify(remaining));
+      }
+
+      return { success: errors.length === 0, count: successCount, errors };
+    },
   },
   events: {
     getAll: () => fetchWithAuth('/api/admin/events'),
