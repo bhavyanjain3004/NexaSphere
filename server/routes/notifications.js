@@ -15,6 +15,7 @@ import { notificationPreferencesRepository } from '../repositories/notificationP
 import { studentAuthService } from '../services/studentAuthService.js';
 import { notificationSchema } from '../validators/notificationSchemas.js';
 
+import { body, validationResult } from 'express-validator';
 const router = Router();
 
 // ── Constants ───────────────────────────────────────────────────────────────

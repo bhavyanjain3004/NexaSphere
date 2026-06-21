@@ -1,8 +1,10 @@
-import pdfParse from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 /**
  * Parses buffer of a PDF file to extract raw text content.
- * @param {Buffer} buffer 
+ * @param {Buffer} buffer
  * @returns {Promise<string>}
  */
 export async function parseResumePDF(buffer) {

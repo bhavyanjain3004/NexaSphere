@@ -31,6 +31,8 @@ import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
 import announcementsRouter from './routes/announcements.js';
 import bulkRouter from './routes/bulk.js';
+import healthDashboardRouter from './routes/healthDashboard.js';
+import complianceRouter from './routes/compliance.js';
 import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddleware.js';
@@ -57,7 +59,9 @@ import { searchController } from './controllers/searchController.js';
 import { Mutex } from 'async-mutex';
 import { CircuitBreaker, circuitBreakerRegistry } from './utils/circuitBreaker.js';
 import { getPublicAppUrl } from './utils/publicAppUrl.js';
+import { logEvent } from './controllers/analyticsController.js';
 import * as eventsController from './controllers/eventsController.js';
+import * as slackController from './controllers/slackController.js';
 import * as activityEventsController from './controllers/activityEventsController.js';
 import * as streamController from './controllers/streamController.js';
 import * as coreTeamController from './controllers/coreTeamController.js';
@@ -65,7 +69,9 @@ import { coreTeamService } from './services/coreTeamService.js';
 import { HAS_SUPABASE } from './storage/supabaseClient.js';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import RedisStore from 'connect-redis';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const RedisStore = require('connect-redis').default || require('connect-redis');
 import Redis from 'ioredis';
 import passport from './config/studentOAuth.js';
 import { studentUsersRepository } from './repositories/studentUsersRepository.js';
@@ -354,7 +360,7 @@ if (!useStructuredHttpLog) {
 }
 
 // Mount route modules
-app.use('/api/form-submissions', formSubmissionsRouter);
+
 app.post('/api/analytics/track', logEvent);
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api/health-dashboard', healthDashboardRouter);

@@ -65,7 +65,11 @@ const CommonIdentitySchema = z
 
 const RecruitmentExtrasSchema = z
   .object({
-    year: z.string().trim().min(1, 'Year is required').max(40),
+    year: z
+      .string({ required_error: 'Year is required', invalid_type_error: 'Year is required' })
+      .trim()
+      .min(1, 'Year is required')
+      .max(40),
     role: OptionalText(80),
     interests: TextList,
     skills: OptionalText(400),
@@ -89,7 +93,14 @@ const MembershipExtrasSchema = z
   .object({
     rollNumber: OptionalText(40),
     course: OptionalText(80),
-    semester: z.string().trim().min(1, 'Semester is required').max(40),
+    semester: z
+      .string({
+        required_error: 'Semester is required',
+        invalid_type_error: 'Semester is required',
+      })
+      .trim()
+      .min(1, 'Semester is required')
+      .max(40),
     groups: TextList,
     whyJoin: z.string().trim().max(1200).optional(),
   })
@@ -160,9 +171,7 @@ const recruitmentSubmissionSchema = CommonIdentitySchema.passthrough()
       groups: data.groups,
       whyJoin: normalized.reason,
     };
-  })
-  // Strip any leftover fallback/unknown keys at the final output boundary
-  .pipe(z.object({}).passthrough().strip());
+  });
 
 const coreTeamApplicationSchema = recruitmentSubmissionSchema;
 
@@ -195,9 +204,7 @@ const membershipSubmissionSchema = CommonIdentitySchema.passthrough()
       whyJoin: normalized.reason,
       reason: normalized.reason,
     };
-  })
-  // Strip any leftover fallback/unknown keys at the final output boundary
-  .pipe(z.object({}).passthrough().strip());
+  });
 
 function normalizeFormSubmission(formType, body) {
   if (formType === 'recruitment') {
@@ -212,5 +219,9 @@ function normalizeFormSubmission(formType, body) {
   throw new Error(`Invalid form type: ${formType}`);
 }
 
-export { coreTeamApplicationSchema, membershipSubmissionSchema, recruitmentSubmissionSchema, normalizeFormSubmission };
-
+export {
+  coreTeamApplicationSchema,
+  membershipSubmissionSchema,
+  recruitmentSubmissionSchema,
+  normalizeFormSubmission,
+};

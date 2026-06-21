@@ -24,12 +24,7 @@ import {
   getReadOnlyStatus,
   createIncidentLog,
 } from '../routes/readOnlyMode.js';
-import {
-  activateReadOnlyMode as activateReadOnlyMode2,
-  deactivateReadOnlyMode as deactivateReadOnlyMode2,
-  getReadOnlyStatus as getReadOnlyStatus2,
-  createIncidentLog as createIncidentLog2,
-} from '../utils/readOnlyMode.js';
+
 import {
   getServiceStatus,
   getIncidentTimeline,

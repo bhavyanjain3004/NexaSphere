@@ -22,6 +22,9 @@ import { auditLogRepository } from '../repositories/auditLogRepository.js';
 
 import * as recommendationsController from '../controllers/recommendationsController.js';
 import * as gamificationController from '../controllers/gamificationController.js';
+import * as subscriptionsController from '../controllers/subscriptionsController.js';
+import { impersonationService } from '../services/impersonationService.js';
+import { studentAuthService } from '../services/studentAuthService.js';
 import multer from 'multer';
 
 const upload = multer({
@@ -33,10 +36,18 @@ const router = Router();
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
 router.post('/api/dashboard/xp', gamificationController.awardXP);
-router.post('/api/assistant/recommend', upload.single('file'), recommendationsController.getProjectRecommendations);
+router.post(
+  '/api/assistant/recommend',
+  upload.single('file'),
+  recommendationsController.getProjectRecommendations
+);
 router.get('/api/users', usersController.getPublicUsers);
 router.get('/api/content/events', eventsController.listEvents);
-router.post('/api/content/events/:eventId/register', eventRegistrationLimiter, eventRegistrationController.registerForEvent);
+router.post(
+  '/api/content/events/:eventId/register',
+  eventRegistrationLimiter,
+  eventRegistrationController.registerForEvent
+);
 router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
 router.get(
   '/api/content/activity-events/:activityKey',

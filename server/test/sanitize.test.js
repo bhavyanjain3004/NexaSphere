@@ -41,7 +41,7 @@ test('sanitizeCoreTeamMemberRecord escapes profile fields and optional links', (
     section: 'A',
     email: 'alice+test@example.com',
     whatsapp: '1234567890',
-    linkedin: 'https://example.com/?q="x"&y=<z>',
+    linkedin: 'https://linkedin.com/?q="x"&y=<z>',
     instagram: 'https://instagram.com/<handle>',
     photoUrl: 'https://cdn.example.com/"avatar".png?alt=<img alt="">',
   });
@@ -50,7 +50,7 @@ test('sanitizeCoreTeamMemberRecord escapes profile fields and optional links', (
   assert.equal(sanitized.role, 'Lead &amp; &quot;Owner&quot;');
   assert.equal(sanitized.year, '3rd &lt;year&gt;');
   assert.equal(sanitized.branch, 'CSE &amp; IT');
-  assert.equal(sanitized.linkedin, 'https://example.com/?q=&quot;x&quot;&amp;y=&lt;z&gt;');
+  assert.equal(sanitized.linkedin, 'https://linkedin.com/?q=&quot;x&quot;&amp;y=&lt;z&gt;');
   assert.equal(sanitized.instagram, 'https://instagram.com/&lt;handle&gt;');
   assert.equal(
     sanitized.photoUrl,
