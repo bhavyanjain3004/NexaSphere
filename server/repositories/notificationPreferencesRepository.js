@@ -91,4 +91,25 @@ export const notificationPreferencesRepository = {
       return rows[0] || null;
     });
   },
+
+  async isInsideQuietHours(userId, category = 'event_reminders') {
+    const pref = await this.get(userId, category);
+    if (!pref || !pref.quiet_start || !pref.quiet_end) return false;
+
+    const now = new Date();
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const start = pref.quiet_start;
+    const end = pref.quiet_end;
+
+    if (start < end) {
+      return currentTime >= start && currentTime <= end;
+    } else {
+      return currentTime >= start || currentTime <= end;
+    }
+  },
+
+  async isDNDActive(userId, category = 'event_reminders') {
+    const pref = await this.get(userId, category);
+    return pref ? !!pref.dnd : false;
+  },
 };

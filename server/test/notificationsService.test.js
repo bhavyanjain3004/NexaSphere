@@ -41,6 +41,19 @@ pg.Pool = class MockPool {
   }
 };
 
+import { notificationPreferencesRepository } from '../repositories/notificationPreferencesRepository.js';
+import { notificationAnalyticsRepository } from '../repositories/notificationAnalyticsRepository.js';
+import { pushSubscriptionsRepository } from '../repositories/pushSubscriptionsRepository.js';
+
+notificationAnalyticsRepository.getUserActivityMetrics = async () => ({
+  daysSinceLastActive: 0,
+  dailyActiveCount: 0,
+});
+notificationPreferencesRepository.get = async () => null;
+notificationPreferencesRepository.isDNDActive = async () => false;
+notificationPreferencesRepository.isInsideQuietHours = async () => false;
+pushSubscriptionsRepository.list = async () => [];
+
 import {
   getNotifications,
   addNotification,

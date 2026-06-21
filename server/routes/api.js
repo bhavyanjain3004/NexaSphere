@@ -170,6 +170,11 @@ router.get(
   adminAuthMiddleware.requireScope('events:read'),
   eventAnalyticsController.getEventStats
 );
+router.get(
+  '/api/admin/events/:eventId/registrations',
+  adminAuthMiddleware.requireScope('events:read'),
+  attendanceController.getAttendanceList
+);
 router.post(
   '/api/admin/events',
   adminAuthMiddleware.requireScope('events:write'),

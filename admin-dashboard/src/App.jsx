@@ -20,6 +20,12 @@ import { PortfolioManager } from './pages/PortfolioManager';
 import { StreamManager } from './pages/StreamManager';
 import { CircuitBreakerManager } from './pages/CircuitBreakerManager';
 import { WaitingRoomManager } from './pages/WaitingRoomManager';
+import { ImpersonationBanner } from './components/ImpersonationBanner';
+import { ComprehensiveAnalytics } from './pages/ComprehensiveAnalytics';
+import { EventAnalytics } from './pages/EventAnalytics';
+import { EventRegistrations } from './pages/EventRegistrations';
+import { EventScanner } from './pages/EventScanner';
+import { EventAttendanceReport } from './pages/EventAttendanceReport';
 import './styles/admin.css';
 
 function RequireAuth() {
@@ -66,6 +72,10 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardHome />} />
             <Route path="/dashboard/analytics" element={<ComprehensiveAnalytics />} />
             <Route path="/dashboard/events" element={<EventsManager />} />
+            <Route path="/dashboard/event-registrations" element={<EventRegistrations />} />
+            <Route path="/dashboard/event-scanner" element={<EventScanner />} />
+            <Route path="/dashboard/event-analytics" element={<EventAnalytics />} />
+            <Route path="/dashboard/reports/attendance" element={<EventAttendanceReport />} />
             <Route path="/dashboard/activity-events" element={<ActivityEventsManager />} />
             <Route path="/dashboard/core-team" element={<CoreTeamManager />} />
             <Route path="/dashboard/membership" element={<MembershipResponsesManager />} />

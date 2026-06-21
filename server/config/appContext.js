@@ -53,7 +53,7 @@ if (!pg.Client.prototype.query[PG_PATCH_APPLIED]) {
       if (typeof firstArg === 'string') {
         args[0] = `/* reqId: ${safeId} */ ${firstArg}`;
       } else if (firstArg?.text && !secondArgIsCallback) {
-        args[0] = { ...firstArg, text: `/* reqId: ${safeId} */ ${firstArg.text}` };
+        firstArg.text = `/* reqId: ${safeId} */ ${firstArg.text}`;
       }
     }
 
@@ -63,6 +63,37 @@ if (!pg.Client.prototype.query[PG_PATCH_APPLIED]) {
   pg.Client.prototype.query[PG_PATCH_APPLIED] = true;
 }
 
+// Patch globalThis.fetch to automatically propagate X-Request-ID headers inside tracing context
+const FETCH_PATCH_APPLIED = Symbol.for('appContext.fetch.patched');
+if (typeof globalThis.fetch === 'function' && !globalThis.fetch[FETCH_PATCH_APPLIED]) {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async function (url, options = {}) {
+    const store = appContext.getStore();
+    if (store?.reqId) {
+      const headers = new Headers();
+      if (options.headers instanceof Headers) {
+        options.headers.forEach((v, k) => headers.set(k, v));
+      } else if (options.headers) {
+        Object.entries(options.headers).forEach(([k, v]) => headers.set(k, v));
+      }
+      if (!headers.has('X-Request-ID')) {
+        headers.set('X-Request-ID', store.reqId);
+      }
+      const urlString = getUrlString(url);
+      if (isInternalUrl(urlString)) {
+        propagation.inject(otelContext.active(), headers, {
+          set(carrier, key, value) {
+            carrier.set(key, value);
+          },
+        });
+      }
+      return originalFetch(url, { ...options, headers });
+    }
+    return originalFetch(url, options);
+  };
+  globalThis.fetch[FETCH_PATCH_APPLIED] = true;
+}
+
 // Export a wrapped fetch for call sites to use explicitly, instead of
 // patching global.fetch. This avoids import-order races with OTel/undici
 // patching the global fetch themselves.
@@ -70,25 +101,5 @@ if (!pg.Client.prototype.query[PG_PATCH_APPLIED]) {
 // (e.g. during request handling, after tracingMiddleware has populated the
 // store).
 export async function tracedFetch(url, options = {}) {
-  const store = appContext.getStore();
-  const headers = new Headers();
-
-  if (options.headers instanceof Headers) {
-    options.headers.forEach((v, k) => headers.set(k, v));
-  } else if (options.headers) {
-    Object.entries(options.headers).forEach(([k, v]) => headers.set(k, v));
-  }
-
-  if (store?.reqId) headers.set('X-Request-ID', store.reqId);
-
-  const urlString = getUrlString(url);
-  if (isInternalUrl(urlString)) {
-    propagation.inject(otelContext.active(), headers, {
-      set(carrier, key, value) {
-        carrier.set(key, value);
-      },
-    });
-  }
-
-  return globalThis.fetch(url, { ...options, headers });
+  return globalThis.fetch(url, options);
 }

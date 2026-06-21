@@ -11,6 +11,10 @@ import { CoreTeamManager } from './pages/CoreTeamManager';
 import { MembershipResponsesManager } from './pages/MembershipResponsesManager';
 import { CertificateManager } from './pages/CertificateManager';
 import { AnnouncementsManager } from './pages/AnnouncementsManager';
+import { EventRegistrations } from './pages/EventRegistrations';
+import { EventScanner } from './pages/EventScanner';
+import { EventAnalytics } from './pages/EventAnalytics';
+import { EventAttendanceReport } from './pages/EventAttendanceReport';
 import { useAuth } from './hooks/useAuth';
 import { PermissionGuard } from './components/PermissionGuard';
 import './styles/admin.css';
@@ -62,6 +66,50 @@ export default function DashboardIndex() {
                 fallback={<Navigate to="/unauthorized" replace />}
               >
                 <EventsManager />
+              </PermissionGuard>
+            }
+          />
+          <Route
+            path="dashboard/event-registrations"
+            element={
+              <PermissionGuard
+                requiredScope="events:read"
+                fallback={<Navigate to="/unauthorized" replace />}
+              >
+                <EventRegistrations />
+              </PermissionGuard>
+            }
+          />
+          <Route
+            path="dashboard/event-scanner"
+            element={
+              <PermissionGuard
+                requiredScope="events:write"
+                fallback={<Navigate to="/unauthorized" replace />}
+              >
+                <EventScanner />
+              </PermissionGuard>
+            }
+          />
+          <Route
+            path="dashboard/event-analytics"
+            element={
+              <PermissionGuard
+                requiredScope="events:read"
+                fallback={<Navigate to="/unauthorized" replace />}
+              >
+                <EventAnalytics />
+              </PermissionGuard>
+            }
+          />
+          <Route
+            path="dashboard/reports/attendance"
+            element={
+              <PermissionGuard
+                requiredScope="events:read"
+                fallback={<Navigate to="/unauthorized" replace />}
+              >
+                <EventAttendanceReport />
               </PermissionGuard>
             }
           />

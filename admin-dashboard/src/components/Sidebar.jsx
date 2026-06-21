@@ -37,6 +37,12 @@ const links = [
     requiredScope: 'events:read',
   },
   {
+    to: '/dashboard/reports/attendance',
+    label: 'Attendance Report',
+    icon: 'FileText',
+    requiredScope: 'events:read',
+  },
+  {
     to: '/dashboard/activity-events',
     label: 'Activity Events',
     icon: 'Target',

@@ -51,7 +51,7 @@ export const markAttendance = wrapAsync(async (req, res) => {
 });
 
 export const getAttendanceList = wrapAsync(async (req, res) => {
-  const eventId = String(req.params.eventId || '').trim();
+  const eventId = String(req.params.eventId || req.query.eventId || '').trim();
   if (!eventId) {
     return res.status(400).json({ error: 'Event ID required' });
   }

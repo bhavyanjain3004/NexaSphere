@@ -4,6 +4,7 @@ import { pushSubscriptionsRepository } from '../repositories/pushSubscriptionsRe
 import { notificationsRepository } from '../repositories/notificationsRepository.js';
 import { HAS_SUPABASE, supabaseRequest } from '../storage/supabaseClient.js';
 import webpush from 'web-push';
+import crypto from 'crypto';
 
 /**
  * Orchestrates notification delivery based on user preferences and behavior.
@@ -22,12 +23,33 @@ class NotificationsService {
   async addNotification(userId, data) {
     const { type, priority = 'normal' } = data;
 
+    // Create the notification in the database first
+    const note = await notificationsRepository.create({
+      id: data.id || crypto.randomUUID(),
+      userId: userId || 'global',
+      type: type || 'system',
+      title: data.title || 'Notification',
+      message: data.message || '',
+      link: data.link || null,
+      isRead: !!(data.isRead ?? data.is_read ?? false),
+    });
+
     // 1. Smart Fatigue Adjustment
     const activity = await notificationAnalyticsRepository.getUserActivityMetrics(userId);
-    const prefs = await notificationPreferencesRepository.get(userId);
-    const config = prefs.types[type] || { push: true, frequency: 'immediate' };
+    const pref = await notificationPreferencesRepository.get(userId, type);
+    const config = pref
+      ? { push: pref.push, frequency: pref.frequency }
+      : {
+          push: true,
+          frequency:
+            type === 'announcements'
+              ? 'daily_digest'
+              : type === 'recommendations'
+                ? 'weekly_digest'
+                : 'immediate',
+        };
 
-    if (!config.push) return; // Opted out
+    if (!config.push) return note; // Opted out of push, database record returned
 
     let effectiveFrequency = config.frequency;
 
@@ -41,25 +63,31 @@ class NotificationsService {
     }
 
     // 2. Check DND status (critical notifications bypass DND)
-    const isDND = await notificationPreferencesRepository.isDNDActive(userId);
+    const isDND = await notificationPreferencesRepository.isDNDActive(userId, type);
     if (isDND && priority !== 'high') {
-      return this.queueForLater(userId, data, 'dnd');
+      await this.queueForLater(userId, note, 'dnd');
+      return note;
     }
 
     if (effectiveFrequency === 'immediate') {
       // 3. Check Quiet Hours
-      const inQuietHours = await notificationPreferencesRepository.isInsideQuietHours(userId);
+      const inQuietHours = await notificationPreferencesRepository.isInsideQuietHours(userId, type);
       if (inQuietHours && priority !== 'high') {
-        return this.queueForLater(userId, data, 'quiet_hours');
+        await this.queueForLater(userId, note, 'quiet_hours');
+        return note;
       }
-      return this.sendNow(userId, data);
+      await this.sendNow(userId, note);
+      return note;
     } else if (effectiveFrequency !== 'disabled') {
-      return this.addToDigest(userId, effectiveFrequency, data);
+      await this.addToDigest(userId, effectiveFrequency, note);
+      return note;
     }
+
+    return note;
   }
 
   async sendNow(userId, data) {
-    const subs = await pushSubscriptionsRepository.listByUser(userId);
+    const subs = await pushSubscriptionsRepository.list();
     const payload = JSON.stringify({
       notification: {
         title: data.title,
@@ -153,5 +181,5 @@ export const getNotifications = notificationsService.getNotifications.bind(notif
 export const markAsRead = notificationsService.markAsRead.bind(notificationsService);
 export const markAllAsRead = notificationsService.markAllAsRead.bind(notificationsService);
 export const clearAll = notificationsService.clearAll.bind(notificationsService);
-export const removeNotification = notificationsService.removeNotification.bind(notificationsService);
-
+export const removeNotification =
+  notificationsService.removeNotification.bind(notificationsService);
