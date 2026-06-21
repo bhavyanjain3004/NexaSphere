@@ -1,5 +1,9 @@
 import rateLimit from 'express-rate-limit';
 import logger from '../utils/logger.js';
+import { createRateLimitStore } from '../services/rateLimitService.js';
+import { apiSecurityManager } from "../utils/apiSecurityManager.js";
+
+const suspiciousIPs = new Map();
 
 function parsePositiveInt(value, fallback) {
   const n = parseInt(value, 10);
@@ -24,11 +28,32 @@ const FORM_MAX_REQUESTS = parsePositiveInt(process.env.RATE_LIMIT_MAX_REQUESTS, 
 // Previously missing: the export did not exist, so app.use("/api", apiRateLimiter)
 // received undefined and Express silently skipped the middleware entirely.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Reusable Factory Function for Consistent Error Responses & Logging
+// ---------------------------------------------------------------------------
+const createLimiterHandler = (logMessage, clientErrorMessage) => {
+  return (req, res, _next, options) => {
+    logger.warn(logMessage, {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+      limit: options.max,
+      windowMs: options.windowMs,
+    });
+
+    res.status(options.statusCode).json({
+      error: clientErrorMessage,
+    });
+  };
+};
+
 export const apiRateLimiter = rateLimit({
   windowMs: API_WINDOW_MS,
   max: API_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:api:'),
   handler: (req, res, _next, options) => {
     logger.warn('Global API rate limit exceeded', {
       ip: req.ip,
@@ -37,6 +62,27 @@ export const apiRateLimiter = rateLimit({
       limit: options.max,
       windowMs: options.windowMs,
     });
+
+    const currentCount = (suspiciousIPs.get(req.ip) || 0) + 1;
+    suspiciousIPs.set(req.ip, currentCount);
+
+    if (currentCount >= 5) {
+      logger.error('Suspicious activity detected', {
+        ip: req.ip,
+        attempts: currentCount,
+        path: req.originalUrl || req.path,
+        detectedAt: new Date().toISOString(),
+      });
+    }
+
+    const riskScore = calculateRiskScore(req);
+
+    if (riskScore > 80) {
+      return res.status(429).json({
+        error: 'Suspicious activity detected',
+      });
+    }
+
     res.status(options.statusCode).json({
       error: 'Too many requests from this IP, please try again later.',
     });
@@ -51,6 +97,7 @@ export const formRateLimiter = rateLimit({
   max: FORM_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:form:'),
   handler: (req, res, _next, options) => {
     logger.warn('Rate limit exceeded for public form API', {
       ip: req.ip,
@@ -71,9 +118,10 @@ export const authRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    error: 'Too many login attempts, please try again after a minute.',
-  },
+  handler: createLimiterHandler(
+    "Authentication rate limit exceeded",
+    "Too many login attempts, please try again after a minute."
+  ),
 });
 
 // Notification mutation rate limiter — 60 requests per IP per 15 minutes
@@ -82,9 +130,10 @@ export const notificationRateLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    error: 'Too many notification requests, please try again later.',
-  },
+  handler: createLimiterHandler(
+    "Notification mutation rate limit exceeded",
+    "Too many notification requests, please try again later."
+  ),
 });
 
 // Activity-event auth rate limiter: 10 requests per IP per 15 minutes.
@@ -97,6 +146,7 @@ export const activityAuthRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:activity-auth:'),
   handler: (req, res, next, options) => {
     logger.warn('Activity-event auth rate limit exceeded', {
       ip: req.ip,
@@ -109,14 +159,73 @@ export const activityAuthRateLimiter = rateLimit({
   },
 });
 
+// Sync batch rate limiter — 10 requests per IP per minute.
+// Applied to the write-heavy POST /api/sync/batch which previously had no
+// rate limiting or authentication at all.
+export const syncRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:sync:'),
+  handler: (req, res, next, options) => {
+    logger.warn('Sync batch rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    res.status(options.statusCode).json({
+      error: 'Too many sync requests from this IP, please try again later.',
+    });
+  },
+});
+
 // Portfolio update rate limiter — 10 requests per IP per 15 minutes
 export const portfolioRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    error: 'Too many portfolio update attempts from this IP, please try again after 15 minutes.',
+  handler: createLimiterHandler(
+    "Portfolio update rate limit exceeded",
+    "Too many portfolio update attempts from this IP, please try again after 15 minutes."
+  ),
+});
+
+// Event registration rate limiter — 10 requests per IP per hour
+export const eventRegistrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:event-reg:'),
+  handler: (req, res, _next, options) => {
+    logger.warn('Event registration rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+      method: req.method,
+    });
+    res.status(options.statusCode).json({
+      error: 'Too many registration attempts. Please try again later.',
+    });
+  },
+});
+
+// Search rate limiter: 30 requests per minute per IP.
+export const searchRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createRateLimitStore('rate-limit:search:'),
+  handler: (req, res, next, options) => {
+    logger.warn('Search rate limit exceeded', {
+      ip: req.ip,
+      path: req.originalUrl || req.path,
+    });
+    res.status(options.statusCode).json({
+      error: 'Too many search requests. Please slow down.',
+    });
   },
 });
 
@@ -132,7 +241,10 @@ export function validateLimiters() {
     authRateLimiter,
     notificationRateLimiter,
     activityAuthRateLimiter,
+    syncRateLimiter,
     portfolioRateLimiter,
+    eventRegistrationLimiter,
+    searchRateLimiter,
   };
 
   for (const [name, limiter] of Object.entries(limiters)) {
