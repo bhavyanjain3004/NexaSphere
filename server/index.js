@@ -90,6 +90,7 @@ import { loadPersistedPushSubscriptions } from './routes/notifications.js';
 import * as mentorshipController from './controllers/mentorshipController.js';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
 import { tierRateLimiter } from './middleware/tierRateLimiter.js';
+import { startWebhookRetryProcessor } from './services/webhookRetryProcessor.js';
 import { csrfProtection } from './middleware/csrfMiddleware.js';
 import compression from 'compression';
 import syncRouter from './routes/sync.js';
