@@ -12,8 +12,6 @@ const links = [
   { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
   { to: '/dashboard/analytics', label: 'Analytics', icon: 'BarChart' },
   { to: '/dashboard/analytics/funnel', label: 'Funnel Analysis', icon: 'TrendingDown' },
-  { to: '/dashboard/analytics/custom-events', label: 'Custom Events', icon: 'Target' },
-  { to: '/api/admin/queues', label: 'Job Queues', icon: 'Server', external: true },
   { to: '/dashboard/events', label: 'Events', icon: 'Calendar', requiredScope: 'events:read' },
   {
     to: '/dashboard/waiting-room',
