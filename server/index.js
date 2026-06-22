@@ -7,7 +7,6 @@ import helmet from 'helmet';
 import express from 'express';
 import cors from 'cors';
 import csrf from 'csurf';
-import morgan from 'morgan';
 import fs, { promises as fsp } from 'fs';
 import { body, validationResult } from 'express-validator';
 import { EventEmitter } from 'events';
@@ -34,6 +33,7 @@ import bulkRouter from './routes/bulk.js';
 import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddleware.js';
+import { apiLogger } from './middleware/apiLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { notificationAnalyticsRepository } from './repositories/notificationAnalyticsRepository.js';
 import { initializeSentry, addSentryErrorHandler } from './utils/sentry.js';
@@ -306,9 +306,7 @@ app.use(enhancedTracingMiddleware);
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(xssSanitizer);
-if (!useStructuredHttpLog) {
-  app.use(morgan('combined'));
-}
+app.use(apiLogger);
 app.use(performanceMonitor);
 app.use(cookieParser());
 
@@ -327,32 +325,6 @@ app.use(csrfProtection);
 // Global API rate limiter — protects all /api routes from request flooding
 app.use('/api', apiRateLimiter);
 app.use('/api', tierRateLimiter());
-
-function requestLogger(req, res, next) {
-  const start = process.hrtime.bigint();
-  const { method, path, reqId } = req;
-
-  res.on('finish', () => {
-    const duration = Number(process.hrtime.bigint() - start) / 1e6;
-    const status = res.statusCode;
-    const prefix = reqId ? `[${reqId}] ` : '';
-    const message = `${prefix}[${method}] ${path} → ${status} (${Math.round(duration)}ms)`;
-
-    if (status >= 500) {
-      console.error(message);
-    } else if (status >= 400) {
-      console.warn(message);
-    } else {
-      console.log(message);
-    }
-  });
-
-  next();
-}
-
-if (!useStructuredHttpLog) {
-  app.use(requestLogger);
-}
 
 // Mount route modules
 app.use('/api/form-submissions', formSubmissionsRouter);
