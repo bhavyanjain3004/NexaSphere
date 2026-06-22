@@ -11,6 +11,8 @@ import { MentorshipManager } from './pages/MentorshipManager';
 import { DashboardHome } from './pages/DashboardHome';
 import { EventsManager } from './pages/EventsManager';
 import { ActivityEventsManager } from './pages/ActivityEventsManager';
+import ScheduledTasksManager from './pages/ScheduledTasksManager';
+import UserGroups from './pages/UserGroups';
 import { CoreTeamManager } from './pages/CoreTeamManager';
 import { MembershipResponsesManager } from './pages/MembershipResponsesManager';
 import { RecruitmentResponsesManager } from './pages/RecruitmentResponsesManager';
@@ -26,6 +28,7 @@ import { EventAnalytics } from './pages/EventAnalytics';
 import { EventRegistrations } from './pages/EventRegistrations';
 import { EventScanner } from './pages/EventScanner';
 import { EventAttendanceReport } from './pages/EventAttendanceReport';
+import { FunnelAnalysis } from './pages/FunnelAnalysis';
 import './styles/admin.css';
 
 function RequireAuth() {
@@ -71,6 +74,7 @@ export default function App() {
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<DashboardHome />} />
             <Route path="/dashboard/analytics" element={<ComprehensiveAnalytics />} />
+            <Route path="/dashboard/analytics/funnel" element={<FunnelAnalysis />} />
             <Route path="/dashboard/events" element={<EventsManager />} />
             <Route path="/dashboard/event-registrations" element={<EventRegistrations />} />
             <Route path="/dashboard/event-scanner" element={<EventScanner />} />
@@ -88,6 +92,7 @@ export default function App() {
             <Route path="/dashboard/streams" element={<StreamManager />} />
             <Route path="/dashboard/circuit-breaker" element={<CircuitBreakerManager />} />
             <Route path="/dashboard/waiting-room" element={<WaitingRoomManager />} />
+            <Route path="/dashboard/groups" element={<UserGroups />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

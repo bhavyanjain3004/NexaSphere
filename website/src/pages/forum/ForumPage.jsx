@@ -44,6 +44,7 @@ export default function ForumPage({ onBack }) {
         if (threadData?.threads) setThreads(threadData.threads);
       })
       .catch(() => {
+        setCategories(fallbackCategories);
         setThreads(fallbackThreads);
       })
       .finally(() => setLoading(false));

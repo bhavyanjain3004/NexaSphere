@@ -5,11 +5,7 @@ import { studentUsersRepository } from '../repositories/studentUsersRepository.j
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('FATAL: JWT_SECRET environment variable is not set');
-    }
-    console.warn('WARNING: Using insecure default JWT_SECRET for development. Set JWT_SECRET in production.');
-    return 'nexasphere-jwt-dev-secret-change-in-production';
+    throw new Error('FATAL: JWT_SECRET environment variable is not set');
   }
   return secret;
 }

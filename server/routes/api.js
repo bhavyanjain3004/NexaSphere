@@ -49,6 +49,20 @@ router.post(
   eventRegistrationController.registerForEvent
 );
 router.get('/api/content/events/:eventId/calendar', eventRegistrationController.getEventCalendar);
+router.post(
+  '/api/content/events/:eventId/cancel',
+  eventRegistrationLimiter,
+  eventRegistrationController.cancelRegistration
+);
+router.get(
+  '/api/content/events/:eventId/waitlist-position',
+  eventRegistrationController.getWaitlistPosition
+);
+router.delete(
+  '/api/content/events/:eventId/waitlist',
+  eventRegistrationLimiter,
+  eventRegistrationController.leaveWaitlist
+);
 router.get(
   '/api/content/activity-events/:activityKey',
   activityEventsController.listActivityEvents

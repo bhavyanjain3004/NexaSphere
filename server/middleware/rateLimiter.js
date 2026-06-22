@@ -1,7 +1,8 @@
 import rateLimit from 'express-rate-limit';
 import logger from '../utils/logger.js';
 import { createRateLimitStore } from '../services/rateLimitService.js';
-import { apiSecurityManager } from "../utils/apiSecurityManager.js";
+import { apiSecurityManager } from '../utils/apiSecurityManager.js';
+import { calculateRiskScore } from '../utils/threatDetection.js';
 
 const suspiciousIPs = new Map();
 
@@ -9,6 +10,14 @@ function parsePositiveInt(value, fallback) {
   const n = parseInt(value, 10);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
+// ---------------------------------------------------------------------------
+// SECURITY WARNING: Upstream Proxy Dependency
+// These rate limiters rely entirely on `req.ip` mapping to individual clients.
+// For this security perimeter to operate safely without spoofing vulnerabilities
+// or accidental self-inflicted DoS, ensure `app.set('trust proxy', 1)` (or your
+// specific proxy hop count) is explicitly initialized in the main server app entry file.
+// ---------------------------------------------------------------------------
+
 // ---------------------------------------------------------------------------
 // Shared env-var config for the general API limiter
 // Override via API_RATE_LIMIT_WINDOW_MS and API_RATE_LIMIT_MAX in .env
@@ -52,7 +61,7 @@ export const apiRateLimiter = rateLimit({
   windowMs: API_WINDOW_MS,
   max: API_MAX_REQUESTS,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   store: createRateLimitStore('rate-limit:api:'),
   handler: (req, res, _next, options) => {
     logger.warn('Global API rate limit exceeded', {
@@ -96,7 +105,7 @@ export const formRateLimiter = rateLimit({
   windowMs: FORM_WINDOW_MS,
   max: FORM_MAX_REQUESTS,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   store: createRateLimitStore('rate-limit:form:'),
   handler: (req, res, _next, options) => {
     logger.warn('Rate limit exceeded for public form API', {
@@ -117,10 +126,10 @@ export const authRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   handler: createLimiterHandler(
-    "Authentication rate limit exceeded",
-    "Too many login attempts, please try again after a minute."
+    'Authentication rate limit exceeded',
+    'Too many login attempts, please try again after a minute.'
   ),
 });
 
@@ -129,10 +138,10 @@ export const notificationRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   handler: createLimiterHandler(
-    "Notification mutation rate limit exceeded",
-    "Too many notification requests, please try again later."
+    'Notification mutation rate limit exceeded',
+    'Too many notification requests, please try again later.'
   ),
 });
 
@@ -145,7 +154,7 @@ export const activityAuthRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   store: createRateLimitStore('rate-limit:activity-auth:'),
   handler: (req, res, next, options) => {
     logger.warn('Activity-event auth rate limit exceeded', {
@@ -166,7 +175,7 @@ export const syncRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   store: createRateLimitStore('rate-limit:sync:'),
   handler: (req, res, next, options) => {
     logger.warn('Sync batch rate limit exceeded', {
@@ -185,10 +194,10 @@ export const portfolioRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   handler: createLimiterHandler(
-    "Portfolio update rate limit exceeded",
-    "Too many portfolio update attempts from this IP, please try again after 15 minutes."
+    'Portfolio update rate limit exceeded',
+    'Too many portfolio update attempts from this IP, please try again after 15 minutes.'
   ),
 });
 
@@ -197,7 +206,7 @@ export const eventRegistrationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   store: createRateLimitStore('rate-limit:event-reg:'),
   handler: (req, res, _next, options) => {
     logger.warn('Event registration rate limit exceeded', {
@@ -216,7 +225,7 @@ export const searchRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 30, // 30 requests per minute
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   store: createRateLimitStore('rate-limit:search:'),
   handler: (req, res, next, options) => {
     logger.warn('Search rate limit exceeded', {

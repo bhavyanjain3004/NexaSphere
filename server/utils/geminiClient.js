@@ -12,7 +12,7 @@ export async function getRecommendationsFromGemini(resumeText, projects) {
     throw new Error('GEMINI_API_KEY environment variable is not configured.');
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenerativeAI(apiKey);
   const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   const prompt = `

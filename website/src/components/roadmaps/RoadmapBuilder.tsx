@@ -126,11 +126,17 @@ const RoadmapBuilderInner: React.FC<RoadmapBuilderInnerProps> = ({ onBack }) => 
         loadRoadmap(validated.title, validated.description, validated.nodes);
         setMetaTitle(validated.title);
         setMetaDesc(validated.description);
-        alert('Roadmap imported and restored successfully!');
-      } catch (err: unknown) {
-        alert(
-          err instanceof Error ? err.message : 'Malformed JSON Schema: could not load roadmap.'
-        );
+        setNotice('Roadmap imported and restored successfully.');
+      } catch (err: any) {
+        let errorMessage = 'Malformed JSON Schema: could not load roadmap.';
+        if (err instanceof Error && err.message) {
+          errorMessage = `Validation Error: ${err.message}`;
+        } else if (typeof err === 'string') {
+          errorMessage = `Validation Error: ${err}`;
+        } else if (err && typeof err === 'object' && err.error) {
+          errorMessage = `Validation Error: ${err.error}`;
+        }
+        setNotice(errorMessage);
       }
     };
     reader.readAsText(file);
