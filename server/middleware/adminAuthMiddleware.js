@@ -70,9 +70,7 @@ const pendingTwoFactorSetups = new Map();
 const pendingTwoFactorChallenges = new Map();
 const PENDING_2FA_TTL_MS = 10 * 60 * 1000;
 
-// RECTIFIED: Use a global Redis connection instance instead of an isolated local Map pool
-// (Ensure your project has a centralized redis configuration client available)
-import { redisClient } from '../config/redis.js';
+// RECTIFIED: Use getRedisClient from utils/redis.js instead of importing from non-existent config/redis.js
 
 function requiredEnv(name) {
   const value = String(process.env[name] || '').trim();
@@ -112,12 +110,16 @@ function getClientIp(req) {
 // RECTIFIED: Asynchronous Redis key operations with automatic TTL enforcement
 async function recordLoginAttempt(ip) {
   const key = `login_attempts:${ip}`;
+  const redis = getRedisClient();
+  if (!redis) {
+    return { attempts: 1 };
+  }
   try {
-    const current = await redisClient.get(key);
+    const current = await redis.get(key);
     const attempts = current ? parseInt(current, 10) : 0;
 
     // Set counter with exact millisecond-based sliding window expiration
-    await redisClient.set(key, attempts + 1, {
+    await redis.set(key, attempts + 1, {
       PX: LOGIN_WINDOW_MS,
     });
 
@@ -130,8 +132,10 @@ async function recordLoginAttempt(ip) {
 
 async function getLoginAttemptState(ip) {
   const key = `login_attempts:${ip}`;
+  const redis = getRedisClient();
+  if (!redis) return null;
   try {
-    const attempts = await redisClient.get(key);
+    const attempts = await redis.get(key);
     if (!attempts) return null;
     return { attempts: parseInt(attempts, 10) };
   } catch (err) {
@@ -142,8 +146,10 @@ async function getLoginAttemptState(ip) {
 
 async function clearLoginAttempts(ip) {
   const key = `login_attempts:${ip}`;
+  const redis = getRedisClient();
+  if (!redis) return;
   try {
-    await redisClient.del(key);
+    await redis.del(key);
   } catch (err) {
     console.error('[Redis Error] Failed to clear login attempts:', err.message);
   }
@@ -357,16 +363,20 @@ async function login(req, res) {
       return res.status(429).json({ error: 'Too many login attempts. Please wait and try again.' });
     }
 
-    const usernameHash = crypto.createHash('sha256').update(u).digest();
-    const adminUsernameHash = crypto.createHash('sha256').update(ADMIN_USERNAME).digest();
-    const passwordHash = crypto.createHash('sha256').update(p).digest();
-    const adminPasswordHash = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest();
+    const matchedUser = adminUsers.find(
+      (user) => safeEqual(u, user.username) && safeEqual(p, user.password)
+    );
 
-    const isUsernameValid = crypto.timingSafeEqual(usernameHash, adminUsernameHash);
-    const isPasswordValid = crypto.timingSafeEqual(passwordHash, adminPasswordHash);
-
-    if (!isUsernameValid || !isPasswordValid) {
+    if (!matchedUser) {
       await recordLoginAttempt(ip);
+      await recordAdminLoginAttempt({
+        username: u || 'unknown',
+        ipAddress: ip,
+        userAgent,
+        success: false,
+        suspicious: false,
+        reason: 'invalid_credentials',
+      }).catch(() => {});
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 

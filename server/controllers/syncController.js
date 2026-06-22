@@ -18,7 +18,7 @@ export const syncController = {
            FROM events
            WHERE updated_at > NOW() - INTERVAL '24 hours'`
         );
-        return pendingRes.rows[0].count;
+        return pendingRes.rows[0]?.count || 0;
       });
       return res.json({
         status: 'ok',

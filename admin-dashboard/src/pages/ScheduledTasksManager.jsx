@@ -233,7 +233,7 @@ function CronEditorModal({ task, onSave, onClose }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function ScheduledTasksManager() {
+export default function ScheduledTasksManager() {
   const { showToast } = useToast();
 
   const [tasks, setTasks] = useState([]);
