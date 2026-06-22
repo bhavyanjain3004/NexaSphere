@@ -14,7 +14,8 @@ import { apiRateLimiter } from '../middleware/rateLimiter.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
-const requireAdmin = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
+router.use(apiRateLimiter);
+const requireAdmin = [adminAuthMiddleware.requireAdmin];
 
 /**
  * SSE stream endpoint - real-time updates for admin

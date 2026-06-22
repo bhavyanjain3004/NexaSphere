@@ -5,7 +5,8 @@ import { apiRateLimiter } from '../middleware/rateLimiter.js';
 import logger from '../utils/logger.js';
 
 const router = Router();
-const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
+router.use(apiRateLimiter);
+const adminAuth = [adminAuthMiddleware.requireAdmin];
 
 // --- PUBLIC/CLIENT SDK ENDPOINTS ---
 

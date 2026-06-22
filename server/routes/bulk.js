@@ -5,7 +5,8 @@ import { apiRateLimiter } from '../middleware/rateLimiter.js';
 import { bulkOperationsService } from '../services/bulkOperationsService.js';
 
 const router = Router();
-const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
+router.use(apiRateLimiter);
+const adminAuth = [adminAuthMiddleware.requireAdmin];
 
 // Helper to support both mounted and unmounted path prefix styles
 const paths = (subPath) => [`${subPath}`, `/api/admin${subPath}`];

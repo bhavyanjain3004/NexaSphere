@@ -42,7 +42,8 @@ import {
 } from '../utils/consistencyVerifier.js';
 
 const router = Router();
-const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
+router.use(apiRateLimiter);
+const adminAuth = [adminAuthMiddleware.requireAdmin];
 
 /**
  * Raw membership fetch helper, wrapped in a circuit breaker to protect

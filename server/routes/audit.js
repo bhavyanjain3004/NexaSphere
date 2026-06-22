@@ -6,7 +6,8 @@ import { auditMonitoringService } from '../services/auditMonitoringService.js';
 import { generateCSV } from '../utils/csvParser.js';
 
 const router = Router();
-const adminAuth = [apiRateLimiter, adminAuthMiddleware.requireAdmin];
+router.use(apiRateLimiter);
+const adminAuth = [adminAuthMiddleware.requireAdmin];
 
 // Support both mounted and unmounted path prefix styles
 const paths = (subPath) => [`${subPath}`, `/api/admin${subPath}`];
