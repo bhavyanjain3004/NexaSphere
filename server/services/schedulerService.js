@@ -203,6 +203,14 @@ const TASK_DEFINITIONS = [
     category: 'system',
     enabled: true,
   },
+  {
+    id: 'email-queue-processor',
+    name: 'Email Queue Processor',
+    description: 'Processes queued email campaigns in batches',
+    cron: '*/5 * * * *', // Every 5 minutes
+    category: 'email',
+    enabled: true,
+  },
 ];
 
 // ─── In-memory state ──────────────────────────────────────────────────────────
@@ -341,6 +349,9 @@ class SchedulerService extends EventEmitter {
       case 'announcement-publisher':
         await this._publishScheduledAnnouncements();
         break;
+      case 'email-queue-processor':
+        await this._processEmailQueue();
+        break;
       default:
         throw new Error(`No implementation for task "${task.id}"`);
     }
@@ -460,10 +471,10 @@ class SchedulerService extends EventEmitter {
       };
 
       // Archive report
-      await client.query(
-        `INSERT INTO scheduled_reports (report_type, content) VALUES ($1, $2)`,
-        ['daily-attendance-report', JSON.stringify(reportData)]
-      );
+      await client.query(`INSERT INTO scheduled_reports (report_type, content) VALUES ($1, $2)`, [
+        'daily-attendance-report',
+        JSON.stringify(reportData),
+      ]);
 
       // Email report to admins
       try {
@@ -513,10 +524,10 @@ class SchedulerService extends EventEmitter {
       };
 
       // Archive report
-      await client.query(
-        `INSERT INTO scheduled_reports (report_type, content) VALUES ($1, $2)`,
-        ['weekly-analytics-report', JSON.stringify(reportData)]
-      );
+      await client.query(`INSERT INTO scheduled_reports (report_type, content) VALUES ($1, $2)`, [
+        'weekly-analytics-report',
+        JSON.stringify(reportData),
+      ]);
 
       // Email report to admins
       try {
@@ -607,6 +618,24 @@ class SchedulerService extends EventEmitter {
       }
     } catch (err) {
       logger.error('[Scheduler] Error publishing scheduled announcements:', err.message);
+    }
+  }
+
+  async _processEmailQueue() {
+    logger.info('[Scheduler] Starting email queue processing');
+    if (!HAS_SUPABASE) {
+      logger.info('[Scheduler] No database configured, skipping email queue processing');
+      return;
+    }
+    try {
+      const { emailCampaignService } = await import('./emailCampaignService.js');
+      const result = await emailCampaignService.processEmailQueue();
+      logger.info(
+        `[Scheduler] Email queue processed: ${result.sent} sent, ${result.failed} failed out of ${result.processed} processed.`
+      );
+    } catch (err) {
+      logger.error('[Scheduler] Error processing email queue:', err.message);
+      throw err;
     }
   }
 

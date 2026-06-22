@@ -21,6 +21,7 @@ router.get('/campaigns/:id', emailCampaignController.getCampaignById);
 router.put('/campaigns/:id', emailCampaignController.updateCampaign);
 router.delete('/campaigns/:id', emailCampaignController.deleteCampaign);
 router.post('/campaigns/:id/send', emailCampaignController.sendCampaign);
+router.post('/campaigns/:id/resend-bounced', emailCampaignController.resendBouncedEmails);
 router.get('/campaigns/:id/stats', emailCampaignController.getCampaignStats);
 router.get('/campaigns/:id/analytics', emailCampaignController.getCampaignAnalytics);
 

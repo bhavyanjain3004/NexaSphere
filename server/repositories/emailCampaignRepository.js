@@ -159,7 +159,6 @@ export const emailCampaignRepository = {
     });
   },
 
-  // --- Campaign Analytics ---
   async insertCampaignAnalytics(analytics) {
     return withDb(async (client) => {
       const { rows } = await client.query(
@@ -175,6 +174,17 @@ export const emailCampaignRepository = {
         ]
       );
       return mapCampaignAnalyticsRow(rows[0]);
+    });
+  },
+
+  async updateCampaignAnalyticsStatus(campaignId, recipientEmail, status, sentAt = null) {
+    return withDb(async (client) => {
+      await client.query(
+        `UPDATE email_campaign_analytics
+         SET status = $3, sent_at = COALESCE($4, sent_at)
+         WHERE campaign_id = $1 AND recipient_email = $2`,
+        [campaignId, recipientEmail, status, sentAt]
+      );
     });
   },
 
@@ -443,6 +453,86 @@ export const emailCampaignRepository = {
         [triggerType]
       );
       return rows;
+    });
+  },
+
+  // --- Queue Management ---
+  async queueEmails(campaignId, recipients, subject, templateName, content) {
+    if (!recipients || recipients.length === 0) return 0;
+    return withDb(async (client) => {
+      // Bulk insert using unnest for performance
+      const emails = recipients.map((r) => r.email);
+      const names = recipients.map((r) => r.full_name || null);
+
+      const { rowCount } = await client.query(
+        `INSERT INTO email_queue (campaign_id, recipient_email, recipient_name, subject, template_name, content)
+         SELECT $1, unnest($2::text[]), unnest($3::text[]), $4, $5, $6::jsonb`,
+        [campaignId, emails, names, subject, templateName || null, JSON.stringify(content || {})]
+      );
+      return rowCount;
+    });
+  },
+
+  async fetchQueuedEmails(limit = 100) {
+    return withDb(async (client) => {
+      // Lock rows for update to prevent concurrent processing by other instances/workers
+      const { rows } = await client.query(
+        `SELECT * FROM email_queue
+         WHERE status = 'queued' AND send_after <= NOW()
+         ORDER BY send_after ASC
+         LIMIT $1
+         FOR UPDATE SKIP LOCKED`,
+        [limit]
+      );
+      if (rows.length > 0) {
+        // Mark them as processing
+        const ids = rows.map((r) => r.id);
+        await client.query(
+          `UPDATE email_queue SET status = 'processing', updated_at = NOW() WHERE id = ANY($1)`,
+          [ids]
+        );
+      }
+      return rows;
+    });
+  },
+
+  async updateQueuedEmailStatus(id, status, error = null, retryAfter = null) {
+    return withDb(async (client) => {
+      if (status === 'failed' && retryAfter) {
+        await client.query(
+          `UPDATE email_queue 
+           SET status = 'queued', attempts = attempts + 1, last_error = $2, send_after = $3, updated_at = NOW()
+           WHERE id = $1`,
+          [id, error, retryAfter]
+        );
+      } else {
+        await client.query(
+          `UPDATE email_queue 
+           SET status = $2, attempts = attempts + 1, last_error = $3, updated_at = NOW()
+           WHERE id = $1`,
+          [id, status, error]
+        );
+      }
+    });
+  },
+
+  async resetBouncedEmails(campaignId) {
+    return withDb(async (client) => {
+      const { rowCount } = await client.query(
+        `UPDATE email_queue
+         SET status = 'queued', attempts = 0, last_error = null, send_after = NOW(), updated_at = NOW()
+         WHERE campaign_id = $1 AND status = 'bounced'`,
+        [campaignId]
+      );
+
+      // Also reset in analytics to let it be updated again
+      await client.query(
+        `UPDATE email_campaign_analytics
+         SET status = 'queued'
+         WHERE campaign_id = $1 AND status = 'bounced'`,
+        [campaignId]
+      );
+      return rowCount;
     });
   },
 };

@@ -68,6 +68,12 @@ export const sendCampaign = wrapAsync(async (req, res) => {
   return res.status(200).json(result);
 });
 
+export const resendBouncedEmails = wrapAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await emailCampaignService.resendBouncedEmails(id);
+  return res.status(200).json(result);
+});
+
 export const getCampaignStats = wrapAsync(async (req, res) => {
   const { id } = req.params;
   const stats = await emailCampaignService.getCampaignStats(id);
