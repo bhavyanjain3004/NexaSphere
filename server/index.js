@@ -318,6 +318,7 @@ app.use('/api', documentationRouter);
 app.use('/', apiRouter);
 app.use('/', healthRouter);
 app.use('/', coreTeamRouter);
+app.use('/', announcementsRouter);
 app.use('/api', formsRouter);
 app.use('/api', portfolioRouter);
 app.use('/api', userGroupsRouter);

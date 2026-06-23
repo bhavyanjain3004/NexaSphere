@@ -214,7 +214,7 @@ class BulkOperationsService {
           }
         });
         processed++;
-        this.updateJobProgress(job.id, processed, []);
+        this.updateJobProgress(jobId, processed, []);
       } catch (err) {
         jobErrors.push(`Row ${user.row}: Database error - ${err.message}`);
       }
@@ -238,7 +238,7 @@ class BulkOperationsService {
         templateName: 'generic',
         data: {
           name: 'Administrator',
-          message: `The bulk user import job (${job.id}) has finished. Successful: ${processed}/${preview.length}. Errors: ${jobErrors.length}.`,
+          message: `The bulk user import job (${jobId}) has finished. Successful: ${processed}/${preview.length}. Errors: ${jobErrors.length}.`,
         },
       });
     } catch (emailErr) {

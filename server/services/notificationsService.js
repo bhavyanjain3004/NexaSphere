@@ -20,12 +20,12 @@ class NotificationsService {
   }
 
   async addNotification(userId, data) {
-    const { type, priority = 'normal' } = data;
+    const { type = 'info', priority = 'normal', title, message, link = null } = data;
 
     // 1. Smart Fatigue Adjustment
     const activity = await notificationAnalyticsRepository.getUserActivityMetrics(userId);
     const prefs = await notificationPreferencesRepository.get(userId);
-    const config = prefs.types[type] || { push: true, frequency: 'immediate' };
+    const config = prefs?.types?.[type] || { push: true, frequency: 'immediate' };
 
     if (!config.push) return; // Opted out
 
@@ -43,19 +43,39 @@ class NotificationsService {
     // 2. Check DND status (critical notifications bypass DND)
     const isDND = await notificationPreferencesRepository.isDNDActive(userId);
     if (isDND && priority !== 'high') {
-      return this.queueForLater(userId, data, 'dnd');
+      await this.queueForLater(userId, data, 'dnd');
+      return;
     }
+
+    // Create the notification record in DB
+    const id =
+      data.id ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2));
+    const note = await notificationsRepository.create({
+      id,
+      userId,
+      type,
+      title,
+      message,
+      link,
+      isRead: data.isRead || false,
+    });
 
     if (effectiveFrequency === 'immediate') {
       // 3. Check Quiet Hours
       const inQuietHours = await notificationPreferencesRepository.isInsideQuietHours(userId);
       if (inQuietHours && priority !== 'high') {
-        return this.queueForLater(userId, data, 'quiet_hours');
+        await this.queueForLater(userId, { ...data, id }, 'quiet_hours');
+        return note;
       }
-      return this.sendNow(userId, data);
+      await this.sendNow(userId, { ...data, id });
     } else if (effectiveFrequency !== 'disabled') {
-      return this.addToDigest(userId, effectiveFrequency, data);
+      await this.addToDigest(userId, effectiveFrequency, { ...data, id });
     }
+
+    return note;
   }
 
   async sendNow(userId, data) {

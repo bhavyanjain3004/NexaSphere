@@ -7,13 +7,12 @@ import pg from 'pg';
 let capturedPgArgs = null;
 const originalPgQuery = pg.Client.prototype.query;
 pg.Client.prototype.query = function (...args) {
-  console.log('WRAPPER RUNNING. args[0]:', args[0]);
   capturedPgArgs = args;
   return originalPgQuery.apply(this, args);
 };
 
-import { appContext, tracedFetch } from '../config/appContext.js';
-import { tracingMiddleware } from '../middleware/tracingMiddleware.js';
+const { appContext, tracedFetch } = await import('../config/appContext.js');
+const { tracingMiddleware } = await import('../middleware/tracingMiddleware.js');
 
 describe('API Request Tracing and Distributed Correlation IDs', () => {
   test('generates a new X-Request-ID if not provided', async () => {
