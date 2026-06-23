@@ -53,6 +53,9 @@ jobs:
           NODE_ENV: production
           VITE_API_BASE: ''
 
+      - name: Create .nojekyll
+        run: touch website/dist/.nojekyll
+
       - name: Upload dist artifact
         uses: actions/upload-artifact@v7
         with:
@@ -124,8 +127,8 @@ jobs:
           NODE_ENV: test
           # Provide stub env vars so server startup helpers don't crash
           ADMIN_USERNAME: test-admin
-          ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD || 'ci_test_password_stub' }}
-          ADMIN_EVENT_PASSWORD: ${{ secrets.CI_ADMIN_EVENT_PASSWORD || 'ci_test_event_password_stub' }}
+          ADMIN_PASSWORD: 'Ci_test_password_stub1!'
+          ADMIN_EVENT_PASSWORD: 'Ci_test_event_password_stub1!'
           PORT: 8787
           CORS_ORIGIN: 'http://localhost,http://127.0.0.1'
 

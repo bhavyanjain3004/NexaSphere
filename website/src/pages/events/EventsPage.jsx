@@ -243,7 +243,7 @@ export default function EventsPage({
         ) : view === 'timeline' ? (
           <div className="events-timeline ns-reveal">
             {sortedEvents.map((ev, i) => {
-              const hasDetailPage = !!ev.hasDetailPage;
+              const hasDetailPage = ev.hasDetailPage !== false;
               const dynamicGradient = buildGradient(ev);
               const glowColor = ev.gradientColors?.[0] || null;
               return (

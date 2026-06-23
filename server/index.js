@@ -212,7 +212,13 @@ app.use(
 
         mediaSrc: ["'self'"],
 
-        frameSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://maps.google.com'],
+        frameSrc: [
+          "'self'",
+          'https://challenges.cloudflare.com',
+          'https://maps.google.com',
+          'https://www.google.com',
+          'https://www.google.co.in',
+        ],
 
         childSrc: ["'none'"],
 

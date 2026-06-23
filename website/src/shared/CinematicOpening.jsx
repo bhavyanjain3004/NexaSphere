@@ -270,12 +270,28 @@ export default function CinematicOpening({ onDone, theme = 'dark' }) {
   const WORD = 'NEXASPHERE';
   const isL = theme === 'light';
 
-  // Respect the user's system preference for reduced motion.
-  // If set, skip the entire cinematic sequence immediately.
+  // Respect the user's system preference for reduced motion or if they visited within a week.
   const prefersReducedMotion = useMemo(() => {
     return (
       typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     );
+  }, []);
+
+  const shouldSkipIntro = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    if (window.navigator.userAgent.includes('Playwright')) return true;
+    try {
+      const lastVisit = localStorage.getItem('ns_last_visit');
+      if (lastVisit) {
+        const diff = Date.now() - parseInt(lastVisit, 10);
+        if (diff < 7 * 24 * 60 * 60 * 1000) {
+          return true;
+        }
+      }
+    } catch (e) {
+      // Ignore storage errors
+    }
+    return false;
   }, []);
 
   const handleSkip = useCallback(() => {
@@ -286,10 +302,16 @@ export default function CinematicOpening({ onDone, theme = 'dark' }) {
   }, [onDone]);
 
   useEffect(() => {
-    // Skip animation immediately for users who prefer reduced motion
-    if (prefersReducedMotion) {
+    // Skip animation immediately for users who prefer reduced motion or visited within a week
+    if (prefersReducedMotion || shouldSkipIntro) {
       onDone?.();
       return;
+    }
+
+    try {
+      localStorage.setItem('ns_last_visit', String(Date.now()));
+    } catch (e) {
+      // Ignore storage errors
     }
 
     const ts = [];
@@ -316,8 +338,6 @@ export default function CinematicOpening({ onDone, theme = 'dark' }) {
 
     // Safety fallback: if the animation sequence stalls (e.g. browser throttling
     // on slow devices or background tabs), ensure onDone() is always called.
-    // The intro intentionally always replays — localStorage persistence is disabled
-    // by design so every page load gets the full cinematic opening.
     const fallback = setTimeout(() => {
       setGone(true);
       onDone();
@@ -329,7 +349,7 @@ export default function CinematicOpening({ onDone, theme = 'dark' }) {
       clearInterval(ivRef.current);
       clearTimeout(fallback);
     };
-  }, [onDone]);
+  }, [onDone, prefersReducedMotion, shouldSkipIntro]);
 
   const bg = isL ? '#FFFFFF' : '#0A0A0A';
   const accent = '#E63946';

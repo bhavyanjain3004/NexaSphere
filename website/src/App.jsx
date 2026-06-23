@@ -168,20 +168,14 @@ function MainRouter({
       '/events': 'Events',
       '/projects': 'Projects',
       '/roadmaps': 'Roadmaps',
-      '/portfolio': 'Portfolio',
       '/collab': 'Collab',
       '/about': 'About',
       '/team': 'Core Team',
       '/contact': 'Contact',
       '/dashboard': 'Dashboard',
       '/analytics': 'Analytics',
-      '/gamification': 'Gamification',
       '/explore': 'Explore',
       '/forum': 'Forum',
-      '/mentorship': 'Mentorship',
-      '/mentorship/mentors': 'Mentorship',
-      '/mentorship/dashboard': 'Mentorship',
-      '/qa-poll': 'Q&A / Polling',
     };
     const tab = pathMap[location.pathname] || 'Home';
     setActiveTab(tab);
@@ -239,12 +233,10 @@ function MainRouter({
       const routeMap = {
         Dashboard: '/dashboard',
         Analytics: '/analytics',
-        Gamification: '/gamification',
         Activities: '/activities',
         Events: '/events',
         Projects: '/projects',
         Roadmaps: '/roadmaps',
-        Portfolio: '/portfolio',
         Collab: '/collab',
         Explore: '/explore',
         Resources: '/resources',
@@ -252,8 +244,6 @@ function MainRouter({
         'Core Team': '/team',
         Contact: '/contact',
         Forum: '/forum',
-        Mentorship: '/mentorship',
-        'Q&A / Polling': '/qa-poll',
       };
       const targetPath = routeMap[tab];
       if (targetPath) {

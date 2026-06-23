@@ -86,6 +86,18 @@ const links = [
     icon: 'MessageSquare',
     requiredScope: 'events:read',
   },
+  {
+    to: '/dashboard/tasks',
+    label: 'Scheduled Tasks',
+    icon: 'Clock',
+    requiredScope: 'settings:admin',
+  },
+  {
+    to: '/dashboard/backups',
+    label: 'Backups / Restore',
+    icon: 'Database',
+    requiredScope: 'settings:admin',
+  },
 ];
 
 export function Sidebar() {

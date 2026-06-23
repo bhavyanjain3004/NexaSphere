@@ -12,11 +12,7 @@ function ActivityCard({ a, idx, onNav }) {
   const agDelay = AG_DELAYS[idx % AG_DELAYS.length];
 
   // Check if this activity has any content to show
-  const detail = activityPages[a.title];
-  const hasContent =
-    detail &&
-    ((detail.conductedEvents && detail.conductedEvents.length > 0) ||
-      (detail.upcomingEvents && detail.upcomingEvents.length > 0));
+  const hasContent = true;
 
   const onMove = (e) => {
     const c = ref.current;

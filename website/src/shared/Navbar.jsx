@@ -12,14 +12,8 @@ const TABS = [
   'Events',
   'Projects',
   'Roadmaps',
-  'Recommendations',
-  'Portfolio',
-  'Blog',
   'Resources',
-  'Gamification',
   'Forum',
-  'Mentorship',
-  'Q&A / Polling',
   'About',
   'Core Team',
   'Contact',
@@ -139,7 +133,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
             <BookmarkToggle onToggle={onToggleBookmarks} />
             <ThemeToggle />
             <LanguageSelector />
-            {isAuthenticated ? (
+            {isAuthenticated && (
               <span
                 className="ns-nav-user-badge"
                 onClick={() => navigate('/dashboard')}
@@ -148,23 +142,6 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
               >
                 👤
               </span>
-            ) : (
-              <button
-                className="ns-nav-login-btn"
-                onClick={() => login('google')}
-                aria-label="Sign in"
-                style={{
-                  background: 'none',
-                  border: '1px solid var(--border)',
-                  color: 'var(--t1)',
-                  borderRadius: '6px',
-                  padding: '2px 8px',
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                }}
-              >
-                Login
-              </button>
             )}
           </div>
         </div>
@@ -263,7 +240,7 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
             <ThemeToggle />
             <LanguageSelector />
 
-            {isAuthenticated ? (
+            {isAuthenticated && (
               <span
                 className="ns-nav-user-badge"
                 onClick={() => navigate('/dashboard')}
@@ -272,15 +249,6 @@ export default function Navbar({ activeTab, onTabChange, onApply, onJoin, onTogg
               >
                 👤
               </span>
-            ) : (
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => login('google')}
-                aria-label="Sign in"
-                style={{ marginLeft: '4px' }}
-              >
-                Login
-              </button>
             )}
 
             <button

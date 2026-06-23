@@ -12,7 +12,6 @@ const FOOTER_LINKS = [
   { label: 'Events', path: '/events' },
   { label: 'Projects', path: '/projects' },
   { label: 'Roadmaps', path: '/roadmaps' },
-  { label: 'Portfolio', path: '/portfolio' },
   { label: 'Collab', path: '/collab' },
   { label: 'About', path: '/about' },
   { label: 'Team', path: '/team' },
@@ -140,27 +139,7 @@ export default function Footer({ onAdmin }) {
               fill="currentColor"
               style={{ display: 'inline', verticalAlign: '-1px' }}
             />{' '}
-            by the NexaSphere Core Team ·{' '}
-            <button
-              onClick={openAdmin}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--t2)',
-                cursor: 'pointer',
-                fontSize: 'inherit',
-                fontFamily: 'inherit',
-                textDecoration: 'underline',
-                padding: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-              }}
-              aria-label="Open Admin Dashboard"
-            >
-              Admin Dashboard
-              <ExternalLink size={10} style={{ opacity: 0.6 }} />
-            </button>
+            by the NexaSphere Core Team
           </p>
         </div>
       </div>

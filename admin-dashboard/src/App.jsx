@@ -24,6 +24,8 @@ import { CircuitBreakerManager } from './pages/CircuitBreakerManager';
 import { WaitingRoomManager } from './pages/WaitingRoomManager';
 import { ComprehensiveAnalytics } from './pages/ComprehensiveAnalytics';
 import { FunnelAnalysis } from './pages/FunnelAnalysis';
+import { BackupsManager } from './pages/BackupsManager';
+import { ImpersonationBanner } from './components/ImpersonationBanner';
 import './styles/admin.css';
 
 function RequireAuth() {
@@ -84,6 +86,8 @@ export default function App() {
             <Route path="/dashboard/circuit-breaker" element={<CircuitBreakerManager />} />
             <Route path="/dashboard/waiting-room" element={<WaitingRoomManager />} />
             <Route path="/dashboard/groups" element={<UserGroups />} />
+            <Route path="/dashboard/tasks" element={<ScheduledTasksManager />} />
+            <Route path="/dashboard/backups" element={<BackupsManager />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
