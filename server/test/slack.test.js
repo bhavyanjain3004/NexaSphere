@@ -8,16 +8,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SLACK_CONFIG_FILE = path.join(__dirname, '..', 'data', 'slack_config.json');
 
-import pg from 'pg';
-pg.Pool = class MockPool {
-  on() {}
-  async connect() {
-    return {
-      query: async () => ({ rows: [], rowCount: 1 }),
-      release: () => {},
-    };
-  }
-};
+process.env.DATABASE_URL = 'postgresql://localhost/dummy_test_db';
+import { setWithDbOverride } from '../repositories/db.js';
+setWithDbOverride(async (fn) => {
+  return fn({
+    query: async () => ({ rows: [{ id: 1, name: 'Test Event', date: '2026-07-01' }], rowCount: 1 }),
+    release: () => {},
+  });
+});
 
 const mockFetchCalls = [];
 globalThis.fetch = async (url, options) => {

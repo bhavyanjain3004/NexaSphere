@@ -421,7 +421,6 @@ async function login(req, res) {
 
     await clearLoginAttempts(ip);
 
-    const matchedUser = adminUsers.find((user) => safeEqual(user.username, u)) || adminUsers[0];
     const role = matchedUser.role || 'SuperAdmin';
     const scopes = getScopesForRole(role);
     const securityAccount = await getOrCreateAdminSecurityAccount(u, matchedUser.email || u);
@@ -519,7 +518,7 @@ async function completeAdminLogin({ req, res, username, role, scopes, ip, userAg
       if (err) console.error('[Session] Error regenerating session:', err);
     });
   }
-  
+
   res.cookie('ns_admin_token', session.token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -750,5 +749,4 @@ export const requirePermission = (permission) => {
 };
 
 export { login, logout, requireAdmin, requireRole, requireScope };
-
-// DCO sign-off commit
+export default adminAuthMiddleware;

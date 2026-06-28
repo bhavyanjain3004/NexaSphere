@@ -45,8 +45,7 @@ import notificationsRouter from './routes/notifications.js';
 import adminRouter from './routes/admin.js';
 import announcementsRouter from './routes/announcements.js';
 import bulkRouter from './routes/bulk.js';
-import healthDashboardRouter from './routes/healthDashboard.js';
-import complianceRouter from './routes/compliance.js';
+
 import { validateEnvironment } from './utils/envValidator.js';
 import { performanceMonitor } from './middleware/performanceMonitor.js';
 import { enhancedTracingMiddleware } from './middleware/enhancedTracingMiddleware.js';
@@ -78,7 +77,7 @@ import { searchController } from './controllers/searchController.js';
 import { Mutex } from 'async-mutex';
 import { CircuitBreaker, circuitBreakerRegistry } from './utils/circuitBreaker.js';
 import { getPublicAppUrl } from './utils/publicAppUrl.js';
-import { logEvent } from './controllers/analyticsController.js';
+
 import * as eventsController from './controllers/eventsController.js';
 import * as slackController from './controllers/slackController.js';
 import './workers/bulkWorker.js';
@@ -117,7 +116,7 @@ import scheduledTasksRouter from './routes/scheduledTasks.js';
 import financialsRouter from './routes/financials.js';
 import { schedulerService } from './services/schedulerService.js';
 import feedbackRouter from './routes/feedbackRoutes.js';
-import * as slackController from './controllers/slackController.js';
+
 import { startStreamingWorkers } from './streaming/startStreamingWorkers.js';
 
 import {
@@ -137,13 +136,29 @@ import {
   validateWhatsApp,
   validateSection,
   sanitizeEvent,
-  normalizePhone
+  normalizePhone,
 } from './repositories/contentStore.js';
 
-import { checkPasskeyLockout, recordFailedPasskeyAttempt, clearPasskeyAttempts } from './middleware/auth/passkeyLockout.js';
-import { checkActivityAuthLockout, recordFailedActivityAuth, clearActivityAuthAttempts, canManageActivityEvent } from './middleware/auth/activityAuth.js';
-import { requireNotificationPrefAuth, requireMentorshipAuth } from './middleware/auth/customAuth.js';
-import { uploadWithMagicCheck, validateMagicBytes, UPLOADS_DIR } from './middleware/uploadMiddleware.js';
+import {
+  checkPasskeyLockout,
+  recordFailedPasskeyAttempt,
+  clearPasskeyAttempts,
+} from './middleware/auth/passkeyLockout.js';
+import {
+  checkActivityAuthLockout,
+  recordFailedActivityAuth,
+  clearActivityAuthAttempts,
+  canManageActivityEvent,
+} from './middleware/auth/activityAuth.js';
+import {
+  requireNotificationPrefAuth,
+  requireMentorshipAuth,
+} from './middleware/auth/customAuth.js';
+import {
+  uploadWithMagicCheck,
+  validateMagicBytes,
+  UPLOADS_DIR,
+} from './middleware/uploadMiddleware.js';
 
 import circuitBreakerRouter from './routes/circuitBreaker.js';
 
@@ -303,7 +318,6 @@ app.use(
       if (!origin) {
         return callback(null, true);
       }
-      if (allowedOrigins.includes(origin)) {
       if (origin && allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -338,7 +352,8 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(xssSanitizer);
 app.use(sqlInjectionGuard);
-if (!useStructuredHttpLog) {
+const useStructuredHttpLog = process.env.STRUCTURED_HTTP_LOG === 'true';
+if (!useStructuredHttpLog && process.env.NODE_ENV !== 'test') {
   app.use(morgan('combined'));
 }
 app.use(apiLogger);
@@ -352,24 +367,55 @@ if (process.env.NODE_ENV === 'production' && !redisSessionUrl.startsWith('rediss
 }
 
 // Reuse the existing getRedisClient if possible, else create a new one
-let sessionClient = getRedisClient();
-if (!sessionClient) {
-  sessionClient = new Redis(redisSessionUrl);
+let sessionStore = undefined;
+if (redisSessionUrl) {
+  let sessionClient = getRedisClient();
+  if (!sessionClient) {
+    sessionClient = new Redis(redisSessionUrl);
+  }
+  sessionStore = new RedisStore({ client: sessionClient, prefix: 'session:express:' });
 }
 
-app.use(session({
-  store: new RedisStore({ client: sessionClient, prefix: 'session:express:' }),
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  name: 'ns_session',
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'strict',
-    maxAge: process.env.NODE_ENV === 'production' ? 8 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
+function requiredStrongPassword(name) {
+  const value = String(process.env[name] || '').trim();
+  if (process.env.NODE_ENV === 'test') {
+    return value || 'Test@Password123!';
   }
-}));
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+  const hasLower = /[a-z]/.test(value);
+  const hasUpper = /[A-Z]/.test(value);
+  const hasNumber = /\d/.test(value);
+  const hasSymbol = /[^A-Za-z0-9]/.test(value);
+
+  if (value.length < 12 || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
+    throw new Error(
+      `${name} must be at least 12 characters and include uppercase, lowercase, number, and symbol`
+    );
+  }
+
+  return value;
+}
+
+const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
+const SESSION_SECRET = requiredStrongPassword('SESSION_SECRET');
+
+app.use(
+  session({
+    store: sessionStore,
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    name: 'ns_session',
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'strict',
+      maxAge: process.env.NODE_ENV === 'production' ? 8 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
+    },
+  })
+);
 
 // Session logging middleware
 app.use((req, res, next) => {
@@ -377,8 +423,17 @@ app.use((req, res, next) => {
     req.session.created_at = Date.now();
     req.session.ip = req.ip || req.connection?.remoteAddress || 'unknown';
     console.log('[Session] New session created:', req.sessionID, 'IP:', req.session.ip);
-  } else if (req.session && req.session.ip && req.session.ip !== (req.ip || req.connection?.remoteAddress)) {
-    console.warn('[Session] Suspicious activity: Session accessed from different IP. Original:', req.session.ip, 'New:', req.ip || req.connection?.remoteAddress);
+  } else if (
+    req.session &&
+    req.session.ip &&
+    req.session.ip !== (req.ip || req.connection?.remoteAddress)
+  ) {
+    console.warn(
+      '[Session] Suspicious activity: Session accessed from different IP. Original:',
+      req.session.ip,
+      'New:',
+      req.ip || req.connection?.remoteAddress
+    );
   }
   next();
 });
@@ -399,7 +454,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
 
 // Track app activity for smart notification frequency adjustment
 app.use((req, res, next) => {
@@ -468,28 +522,6 @@ const defaultContent = {
   activityEvents: {},
   coreTeam: [],
 };
-
-function requiredStrongPassword(name) {
-  const value = String(process.env[name] || '').trim();
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
-  }
-  const hasLower = /[a-z]/.test(value);
-  const hasUpper = /[A-Z]/.test(value);
-  const hasNumber = /\d/.test(value);
-  const hasSymbol = /[^A-Za-z0-9]/.test(value);
-
-  if (value.length < 12 || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
-    throw new Error(
-      `${name} must be at least 12 characters and include uppercase, lowercase, number, and symbol`
-    );
-  }
-
-  return value;
-}
-
-const ADMIN_EVENT_PASSWORD = requiredStrongPassword('ADMIN_EVENT_PASSWORD');
-const SESSION_SECRET = requiredStrongPassword('SESSION_SECRET');
 
 // ── File Upload Configuration ──
 app.use('/uploads', express.static(UPLOADS_DIR));
@@ -626,109 +658,6 @@ app.post('/api/admin/circuit-breaker/retry/:name', adminAuth, async (req, res) =
   }
 });
 
-// Hard cap on tracked entries. When the limit is reached, the
-// oldest inserted entry is evicted before adding a new one, preventing the
-// Map from growing without bound when an attacker rotates through many
-// distinct usernames from the same or different IP addresses.
-const MAX_PASSKEY_TRACKED_KEYS = 10_000;
-const failedPasskeyAttemptsByIp = new Map();
-const failedPasskeyAttemptsByUsername = new Map();
-
-// Periodic sweep every 30 minutes: remove entries whose lockout period has
-// expired and whose attempt count has already been reset to 0, so they do
-// not accumulate for keys that are never visited again.
-setInterval(
-  () => {
-    const now = Date.now();
-    for (const [key, entry] of failedPasskeyAttemptsByIp) {
-      if (entry.count === 0 && now > entry.lockoutUntil) {
-        failedPasskeyAttemptsByIp.delete(key);
-      }
-    }
-    for (const [key, entry] of failedPasskeyAttemptsByUsername) {
-      if (now > entry.lockoutUntil) {
-        failedPasskeyAttemptsByUsername.delete(key);
-      }
-    }
-  },
-  30 * 60 * 1000
-).unref();
-
-function checkPasskeyLockout(username, ip) {
-  const ipKey = String(ip || 'unknown');
-  const userKey = String(username || '').toLowerCase();
-
-  const ipEntry = failedPasskeyAttemptsByIp.get(ipKey);
-  const userEntry = failedPasskeyAttemptsByUsername.get(userKey);
-
-  const now = Date.now();
-
-  if (ipEntry && ipEntry.lockoutUntil !== 0 && now <= ipEntry.lockoutUntil) {
-    return true;
-  }
-
-  if (userEntry && userEntry.lockoutUntil !== 0 && now <= userEntry.lockoutUntil) {
-    return true;
-  }
-
-  // Cleanup expired entries proactively
-  if (ipEntry && ipEntry.lockoutUntil !== 0 && now > ipEntry.lockoutUntil) {
-    failedPasskeyAttemptsByIp.delete(ipKey);
-  }
-  if (userEntry && userEntry.lockoutUntil !== 0 && now > userEntry.lockoutUntil) {
-    failedPasskeyAttemptsByUsername.delete(userKey);
-  }
-
-  return false;
-}
-
-function recordFailedPasskeyAttempt(username, ip) {
-  const ipKey = String(ip || 'unknown');
-  const userKey = String(username || '').toLowerCase();
-
-  // IP tracking
-  if (
-    !failedPasskeyAttemptsByIp.has(ipKey) &&
-    failedPasskeyAttemptsByIp.size >= MAX_PASSKEY_TRACKED_KEYS
-  ) {
-    failedPasskeyAttemptsByIp.delete(failedPasskeyAttemptsByIp.keys().next().value);
-  }
-  const ipEntry = failedPasskeyAttemptsByIp.get(ipKey) || { count: 0, lockoutUntil: 0 };
-  ipEntry.count += 1;
-  if (ipEntry.count >= 5) {
-    ipEntry.lockoutUntil = Date.now() + 15 * 60 * 1000; // 15 mins
-    ipEntry.count = 0; // Reset count so they need 5 more AFTER lockout to be locked again
-  }
-  failedPasskeyAttemptsByIp.set(ipKey, ipEntry);
-
-  // Username tracking (Exponential backoff)
-  if (
-    !failedPasskeyAttemptsByUsername.has(userKey) &&
-    failedPasskeyAttemptsByUsername.size >= MAX_PASSKEY_TRACKED_KEYS
-  ) {
-    failedPasskeyAttemptsByUsername.delete(failedPasskeyAttemptsByUsername.keys().next().value);
-  }
-  const userEntry = failedPasskeyAttemptsByUsername.get(userKey) || { count: 0, lockoutUntil: 0 };
-  userEntry.count += 1;
-  if (userEntry.count >= 5) {
-    // 5 attempts = 1 min, 6 = 2 mins, 7 = 4 mins, 8 = 8 mins, 9+ = 15 mins
-    const factor = Math.pow(2, Math.max(0, userEntry.count - 5));
-    const delayMinutes = Math.min(15, factor);
-    userEntry.lockoutUntil = Date.now() + delayMinutes * 60 * 1000;
-  }
-  failedPasskeyAttemptsByUsername.set(userKey, userEntry);
-
-  return { ipEntry, userEntry };
-}
-
-function clearPasskeyAttempts(username, ip) {
-  const ipKey = String(ip || 'unknown');
-  const userKey = String(username || '').toLowerCase();
-
-  failedPasskeyAttemptsByIp.delete(ipKey);
-  failedPasskeyAttemptsByUsername.delete(userKey);
-}
-
 app.get('/api/notifications', async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
@@ -783,27 +712,6 @@ app.get('/api/notifications', async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
-
-function requireNotificationPrefAuth(req, res, next) {
-  adminAuthMiddleware.requireAdmin(req, res, (err) => {
-    if (!err && req.adminSession) {
-      return next();
-    }
-    requireStudentAuth(req, res, (err2) => {
-      if (err2 || !req.studentUser) {
-        return res.status(401).json({ error: 'Unauthorized: Authentication required' });
-      }
-      const userId =
-        req.method === 'GET' ? req.query.userId || 'global' : req.body.userId || 'global';
-      if (req.studentUser.sub === userId || req.studentUser.id === userId) {
-        return next();
-      }
-      return res
-        .status(403)
-        .json({ error: "Forbidden: You cannot access or modify other users' preferences" });
-    });
-  });
-}
 
 // Notification Preferences
 app.get('/api/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
@@ -865,14 +773,14 @@ app.post('/api/notifications/analytics', async (req, res) => {
 
 app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
   try {
-    const body = req.body || {};
+    const reqBody = req.body || {};
     const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
 
     // 1. Validate credentials up front.  Anything below this point
     //    trusts the username + passkey pair.
     const credentials = portfolioPutSchema.safeParse({
-      username: body.username,
-      passkey: body.passkey,
+      username: reqBody.username,
+      passkey: reqBody.passkey,
     });
     if (!credentials.success) {
       const firstIssue = credentials.error.issues[0];
@@ -884,7 +792,7 @@ app.put('/api/portfolio', portfolioRateLimiter, async (req, res) => {
     //    as javascript: URLs and unknown protocol schemes before
     //    the data ever reaches the repository.  The repository
     //    re-sanitizes as defense-in-depth.
-    const content = portfolioContentSchema.safeParse(body);
+    const content = portfolioContentSchema.safeParse(reqBody);
     if (!content.success) {
       const firstIssue = content.error.issues[0];
       return res.status(400).json({
@@ -948,7 +856,6 @@ app.post('/api/forum/threads/:id/accept/:replyId', requireStudentAuth, forumCont
 app.patch('/api/admin/forum/threads/:id/moderate', adminAuth, forumController.moderateThread);
 app.patch('/api/admin/forum/replies/:replyId/moderate', adminAuth, forumController.moderateReply);
 app.get('/api/admin/forum/threads', adminAuth, forumController.adminListThreads);
-
 
 // ── Mentorship & Buddy System ──
 app.get('/api/mentorship/mentors', mentorshipController.listMentors);

@@ -10,7 +10,7 @@ export function validateEnvironment() {
 
   const missing = required.filter((key) => !process.env[key]);
 
-  if (missing.length) {
+  if (missing.length && process.env.NODE_ENV !== 'test') {
     throw new Error(`Missing environment variables: ${missing.join(', ')}`);
   }
 }

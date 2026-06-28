@@ -1,6 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import RedisStore from 'rate-limit-redis';
-import redisClient from '../utils/redis.js';
+
 import logger from '../utils/logger.js';
 import { createRateLimitStore } from '../services/rateLimitService.js';
 import { apiSecurityManager } from '../utils/apiSecurityManager.js';
@@ -157,10 +156,7 @@ export const activityAuthRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  store: new RedisStore({
-    sendCommand: (...args) => redisClient.call(args[0], ...args.slice(1)),
-    prefix: "rl:activity:",
-  }),
+  store: createRateLimitStore('rl:activity:'),
   handler: (req, res, next, options) => {
     logger.warn('Sync batch rate limit exceeded', {
       ip: req.ip,
@@ -171,6 +167,19 @@ export const activityAuthRateLimiter = rateLimit({
       error: 'Too many sync requests from this IP, please try again later.',
     });
   },
+});
+
+// Sync rate limiter — 100 requests per IP per 5 minutes
+export const syncRateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: true,
+  store: createRateLimitStore('rate-limit:sync:'),
+  handler: createLimiterHandler(
+    'Sync rate limit exceeded',
+    'Too many sync requests from this IP, please try again later.'
+  ),
 });
 
 // Portfolio update rate limiter — 10 requests per IP per 15 minutes

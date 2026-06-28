@@ -1,5 +1,10 @@
 import crypto from 'crypto';
-import { supabaseRequest, HAS_SUPABASE, SUPABASE_URL, SUPABASE_SERVICE_KEY } from '../storage/supabaseClient.js';
+import {
+  supabaseRequest,
+  HAS_SUPABASE,
+  SUPABASE_URL,
+  SUPABASE_SERVICE_KEY,
+} from '../storage/supabaseClient.js';
 import { tracedFetch } from '../config/appContext.js';
 import { readContent, writeContent } from '../storage/contentFileStore.js';
 import { runWithFileLock } from '../storage/contentFileStore.js';
@@ -105,21 +110,6 @@ export function sanitizeEvent(input = {}) {
 
 export function normalizePhone(value) {
   return String(value || '').replace(/[^\d]/g, '');
-}
-
-  const n = String(name || '')
-    .trim()
-    .toLowerCase();
-  const e = String(email || '')
-    .trim()
-    .toLowerCase();
-  const p = normalizePhone(phone);
-
-  const members = await listCoreTeamStore();
-  return members.some(
-    (m) =>
-      m.name.toLowerCase() === n && m.email.toLowerCase() === e && normalizePhone(m.whatsapp) === p
-  );
 }
 
 export async function listEventsStore({ page = 1, limit = 20 } = {}) {

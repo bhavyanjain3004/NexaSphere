@@ -3,7 +3,7 @@ import { pushSubscriptionsRepository } from '../repositories/pushSubscriptionsRe
 import { notificationsRepository } from '../repositories/notificationsRepository.js';
 import { HAS_SUPABASE, supabaseRequest } from '../storage/supabaseClient.js';
 import webpush from 'web-push';
-import crypto from 'crypto';
+import { shouldDeliver } from './notificationPreferencesService.js';
 
 /**
  * Orchestrates notification delivery based on user preferences and behavior.
@@ -22,33 +22,12 @@ class NotificationsService {
   async addNotification(userId, data) {
     const { type = 'info', priority = 'normal', title, message, link = null } = data;
 
-    // Create the notification in the database first
-    const note = await notificationsRepository.create({
-      id: data.id || crypto.randomUUID(),
-      userId: userId || 'global',
-      type: type || 'system',
-      title: data.title || 'Notification',
-      message: data.message || '',
-      link: data.link || null,
-      isRead: !!(data.isRead ?? data.is_read ?? false),
-    });
-
     // 1. Smart Fatigue Adjustment
     const activity = await notificationAnalyticsRepository.getUserActivityMetrics(userId);
-    const pref = await notificationPreferencesRepository.get(userId, type);
-    const config = pref
-      ? { push: pref.push, frequency: pref.frequency }
-      : {
-          push: true,
-          frequency:
-            type === 'announcements'
-              ? 'daily_digest'
-              : type === 'recommendations'
-                ? 'weekly_digest'
-                : 'immediate',
-        };
 
-    if (!config.push) return note; // Opted out of push, database record returned
+    // 2. Check delivery preferences (handles DND, quiet hours, channel prefs)
+    const result = await shouldDeliver(userId, type, 'push', priority === 'high');
+    if (!result.deliver) return;
 
     let effectiveFrequency = result.frequency;
 
@@ -61,32 +40,33 @@ class NotificationsService {
       effectiveFrequency = 'daily_digest';
     }
 
-    // 2. Check DND status (critical notifications bypass DND)
-    const isDND = await notificationPreferencesRepository.isDNDActive(userId, type);
-    if (isDND && priority !== 'high') {
-      await this.queueForLater(userId, note, 'dnd');
-      return note;
-    }
+    // Create the notification record in DB
+    const id =
+      data.id ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2));
+    const note = await notificationsRepository.create({
+      id,
+      userId,
+      type,
+      title,
+      message,
+      link,
+      isRead: data.isRead || false,
+    });
 
     if (effectiveFrequency === 'immediate') {
-      // 3. Check Quiet Hours
-      const inQuietHours = await notificationPreferencesRepository.isInsideQuietHours(userId, type);
-      if (inQuietHours && priority !== 'high') {
-        await this.queueForLater(userId, note, 'quiet_hours');
-        return note;
-      }
-      await this.sendNow(userId, note);
-      return note;
+      await this.sendNow(userId, { ...data, id });
     } else if (effectiveFrequency !== 'disabled') {
-      await this.addToDigest(userId, effectiveFrequency, note);
-      return note;
+      await this.addToDigest(userId, effectiveFrequency, { ...data, id });
     }
 
     return note;
   }
 
   async sendNow(userId, data) {
-    const subs = await pushSubscriptionsRepository.list();
+    const subs = await pushSubscriptionsRepository.listByUser(userId);
     const payload = JSON.stringify({
       notification: {
         title: data.title,

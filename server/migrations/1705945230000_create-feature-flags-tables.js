@@ -6,9 +6,9 @@ export const up = (pgm) => {
     type: { type: 'varchar(40)', notNull: true }, // boolean, percentage, user, role, environment, time
     is_active: { type: 'boolean', notNull: true, default: true },
     rollout_percentage: { type: 'integer', notNull: true, default: 100 },
-    target_users: { type: 'jsonb', notNull: true, default: '[]'::jsonb },
-    target_roles: { type: 'jsonb', notNull: true, default: '[]'::jsonb },
-    environments: { type: 'jsonb', notNull: true, default: '[]'::jsonb },
+    target_users: { type: 'jsonb', notNull: true, default: '[]' },
+    target_roles: { type: 'jsonb', notNull: true, default: '[]' },
+    environments: { type: 'jsonb', notNull: true, default: '[]' },
     start_time: { type: 'timestamptz' },
     end_time: { type: 'timestamptz' },
     fallback_value: { type: 'boolean', notNull: true, default: false },

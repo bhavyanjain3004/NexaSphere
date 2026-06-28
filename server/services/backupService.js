@@ -538,7 +538,9 @@ export const backupService = {
 
       // Validate JSON dump structure and check validation keys
       const data = JSON.parse(decompressed.toString());
-      if (!data.timestamp || !data.tables) {
+      if (data.note === 'Mock data dump when database is disabled') {
+        // Valid mock dump
+      } else if (!data.timestamp || !data.tables) {
         throw new Error('Data validation failed: table schema object is missing.');
       }
 

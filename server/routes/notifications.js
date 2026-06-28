@@ -16,7 +16,6 @@ import { notificationPreferencesRepository } from '../repositories/notificationP
 import { studentAuthService } from '../services/studentAuthService.js';
 import { notificationSchema } from '../validators/notificationSchemas.js';
 
-import { body, validationResult } from 'express-validator';
 const router = Router();
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -356,8 +355,7 @@ router.get('/notifications', async (req, res) => {
   }
 });
 
-
-router.get('/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
+router.get('/notifications/preferences', requireNotificationAuth, async (req, res) => {
   try {
     const userId = req.query.userId || 'global';
     const prefs = await notificationPreferencesRepository.list(userId);
@@ -367,8 +365,7 @@ router.get('/notifications/preferences', requireNotificationPrefAuth, async (req
   }
 });
 
-
-router.put('/notifications/preferences', requireNotificationPrefAuth, async (req, res) => {
+router.put('/notifications/preferences', requireNotificationAuth, async (req, res) => {
   try {
     const userId = req.body.userId || 'global';
     const { category, email, push, in_app, sms, frequency, quiet_start, quiet_end, dnd } = req.body;
@@ -389,8 +386,7 @@ router.put('/notifications/preferences', requireNotificationPrefAuth, async (req
   }
 });
 
-
-router.put('/notifications/preferences/bulk', requireNotificationPrefAuth, async (req, res) => {
+router.put('/notifications/preferences/bulk', requireNotificationAuth, async (req, res) => {
   try {
     const userId = req.body.userId || 'global';
     const { preferences } = req.body;
@@ -404,7 +400,6 @@ router.put('/notifications/preferences/bulk', requireNotificationPrefAuth, async
   }
 });
 
-
 // Notification analytics (lightweight collector)
 router.post('/notifications/analytics', async (req, res) => {
   try {
@@ -416,6 +411,5 @@ router.post('/notifications/analytics', async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
-
 
 export default router;
