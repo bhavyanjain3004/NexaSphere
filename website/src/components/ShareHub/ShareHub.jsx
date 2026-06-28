@@ -73,7 +73,13 @@ export default function ShareHub({ isOpen, onClose, data }) {
         </div>
 
         <div className="sharehub-preview">
-          {data.image && <img src={data.image} alt="" className="sharehub-preview-img" />}
+          {data.image && (
+            <img
+              src={data.image}
+              alt={`Preview image for ${data.title}`}
+              className="sharehub-preview-img"
+            />
+          )}
           <div>
             <p className="sharehub-preview-title">{data.title}</p>
             {data.subtitle && <p className="sharehub-preview-sub">{data.subtitle}</p>}
