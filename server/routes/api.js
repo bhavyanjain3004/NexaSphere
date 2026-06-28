@@ -39,7 +39,7 @@ const router = Router();
 
 // Public
 router.get('/api/dashboard/leaderboard', gamificationController.getLeaderboard);
-router.post('/api/dashboard/xp', gamificationController.awardXP);
+router.post('/api/dashboard/xp', protectedActionRateLimiter, adminAuthMiddleware.requireAdmin, gamificationController.awardXP);
 router.post(
   '/api/assistant/recommend',
   upload.single('file'),
