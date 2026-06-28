@@ -5,6 +5,8 @@
 import { tracedFetch } from '../config/appContext.js';
 import { Router } from 'express';
 import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
+import { supabaseBreaker, HAS_SUPABASE } from '../storage/supabaseClient.js';
+import { financialService } from '../services/financialService.js';
 import {
   validateConfigChange,
   createChangeHistory,
@@ -24,7 +26,6 @@ import {
   getReadOnlyStatus,
   createIncidentLog,
 } from '../routes/readOnlyMode.js';
-
 import {
   getServiceStatus,
   getIncidentTimeline,
@@ -71,11 +72,38 @@ const membershipBreaker = circuitBreakerRegistry.register(
 );
 
 /**
- * GET /membership — Fetch membership responses from Google Apps Script,
- * protected by a circuit breaker. Returns an empty list if the script URL
- * or secret is not configured, or if the circuit is open.
+ * GET /membership — Fetch membership responses from Supabase (primary source of truth).
+ * Falls back to Google Apps Script if Supabase is unavailable.
+ * This ensures form submissions are always visible to admins even when
+ * Google Sheets writes fail (quota, network, etc.).
  */
 router.get('/membership', adminAuth, async (req, res) => {
+  // Primary: Read from Supabase (source of truth)
+  if (HAS_SUPABASE) {
+    try {
+      const data = await supabaseBreaker.execute('form_submissions?form_type=eq.membership&order=created_at.desc', {
+        method: 'GET',
+      });
+      const responses = (data || []).map((row) => ({
+        submittedAt: row.created_at,
+        formType: row.form_type,
+        fullName: row.full_name,
+        collegeEmail: row.college_email,
+        whatsapp: row.whatsapp,
+        ...row.payload,
+      }));
+      return res.json({ responses });
+    } catch (err) {
+      if (err.code === 'CIRCUIT_OPEN') {
+        console.warn('[Membership] Supabase circuit breaker is OPEN, falling back to Google Apps Script');
+      } else {
+        console.error('[Membership] Failed to fetch from Supabase:', err.message);
+      }
+      // Fall through to Google Apps Script fallback
+    }
+  }
+
+  // Fallback: Google Apps Script (legacy path)
   const scriptUrl = process.env.MEMBERSHIP_SCRIPT_URL;
   const secret = process.env.MEMBERSHIP_SECRET;
 
@@ -88,10 +116,10 @@ router.get('/membership', adminAuth, async (req, res) => {
     return res.json({ responses: data.responses || [] });
   } catch (err) {
     if (err.code === 'CIRCUIT_OPEN') {
-      console.warn('[Membership] Circuit breaker is OPEN, returning empty responses');
+      console.warn('[Membership] Google Apps Script circuit breaker is OPEN, returning empty responses');
       return res.json({ responses: [] });
     }
-    console.error('[Membership] Failed to fetch responses:', err.message);
+    console.error('[Membership] Failed to fetch responses from Google Apps Script:', err.message);
     return res.status(500).json({ error: 'Failed to fetch membership responses' });
   }
 });
@@ -221,5 +249,47 @@ router.get('/api/admin/security-analytics', adminAuth, async (req, res) => {
     suspiciousRequests,
   });
 });
+
+router.get('/api/admin/reports/engagement', adminAuth, async (req, res) => {
+  // Generate simulated user engagement stats
+  const seedUsers = Array.from({ length: 45 }, (_, i) => {
+    const eventsAttended = Math.floor(Math.random() * 15);
+    const portfolioCompletion = Math.floor(Math.random() * 101);
+    const activeDays30 = Math.floor(Math.random() * 31);
+    const activeDays90 = Math.floor(Math.random() * 91);
+    const score30 = Math.min((activeDays30 / 30) * 40, 40);
+    const scoreEvents = Math.min((eventsAttended / 10) * 30, 30);
+    const scorePortfolio = (portfolioCompletion / 100) * 30;
+    const engagementScore = Math.round(score30 + scoreEvents + scorePortfolio);
+    const isInactive = activeDays30 < 2 && eventsAttended === 0;
+
+    return {
+      id: `user-${i + 1}`,
+      name: `Community Member ${i + 1}`,
+      eventsAttended,
+      portfolioCompletion,
+      activeDays30,
+      activeDays90,
+      engagementScore,
+      status: isInactive ? 'Inactive' : 'Active',
+    };
+  });
+  seedUsers.sort((a, b) => b.engagementScore - a.engagementScore);
+  res.json({ users: seedUsers });
+});
+
+router.get('/api/admin/reports/revenue', adminAuth, async (req, res) => {
+  try {
+    const user = { id: req.adminSession.username, role: 'admin' };
+    const report = await financialService.getRevenueReport(user);
+    res.json(report);
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to generate revenue report' });
+  }
+});
+
+router.get('/sessions', adminAuth, adminAuthMiddleware.getSecurityOverview);
+router.delete('/sessions/:sessionId', adminAuth, adminAuthMiddleware.revokeSession);
+router.delete('/sessions', adminAuth, adminAuthMiddleware.logoutOtherSessions);
 
 export default router;

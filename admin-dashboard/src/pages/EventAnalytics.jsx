@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { AdminIcon } from '../components/AdminIcon';
 import { Skeleton } from '../components/Skeleton';
+import { AttendanceHeatmap } from '../components/AttendanceHeatmap';
 
 export function EventAnalytics() {
   const [events, setEvents] = useState([]);
@@ -292,6 +293,11 @@ export function EventAnalytics() {
               </div>
             ))}
           </div>
+
+          <AttendanceHeatmap
+            registrations={analytics.registrations || []}
+            title="Registration Density by Day & Time"
+          />
 
           <div
             style={{

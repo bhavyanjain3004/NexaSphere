@@ -11,6 +11,8 @@ const WEBSITE_URL = import.meta.env.VITE_WEBSITE_URL || 'http://localhost:5175';
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: 'Dashboard' },
   { to: '/dashboard/analytics', label: 'Analytics', icon: 'BarChart' },
+  { to: '/dashboard/analytics/funnel', label: 'Funnel Analysis', icon: 'TrendingDown' },
+  { to: '/dashboard/analytics/custom-events', label: 'Custom Events', icon: 'Target' },
   { to: '/dashboard/events', label: 'Events', icon: 'Calendar', requiredScope: 'events:read' },
   {
     to: '/dashboard/waiting-room',
@@ -84,6 +86,42 @@ const links = [
     label: 'Q&A / Polling',
     icon: 'MessageSquare',
     requiredScope: 'events:read',
+  },
+  {
+    to: '/dashboard/tasks',
+    label: 'Scheduled Tasks',
+    icon: 'Clock',
+    requiredScope: 'settings:admin',
+  },
+  {
+    to: '/dashboard/audit-logs',
+    label: 'Audit Logs',
+    icon: 'FileText',
+    to: '/dashboard/audit-logs',
+    label: 'Audit Logs',
+    icon: 'FileText',
+    requiredScope: 'settings:admin',
+  },
+  {
+    to: '/dashboard/scheduled-tasks',
+    label: 'Scheduled Tasks',
+    icon: 'Clock',
+    requiredScope: 'settings:admin',
+  },
+  {
+    to: '/dashboard/backups',
+    label: 'Backups / Restore',
+    icon: 'Database',
+    requiredScope: 'settings:admin',
+  },
+  {
+    to: '/dashboard/reports',
+    label: 'Reports',
+    icon: 'Target',
+    to: '/dashboard/settings',
+    label: 'Platform Settings',
+    icon: 'Settings',
+    requiredScope: 'settings:admin',
   },
 ];
 
@@ -243,8 +281,25 @@ export function Sidebar() {
         {/* Navigation */}
 
         <nav className="sidebar-nav">
-          {links.map(({ to, label, icon, requiredScope }) => {
-            const LinkElement = (
+          {links.map(({ to, label, icon, requiredScope, external }) => {
+            const LinkElement = external ? (
+              <a
+                key={to}
+                href={to}
+                target="_blank"
+                rel="noreferrer"
+                className="nav-link"
+                onClick={close}
+              >
+                <AdminIcon name={icon} size={16} aria-hidden="true" />
+                {label}
+                <AdminIcon
+                  name="ExternalLink"
+                  size={12}
+                  style={{ marginLeft: 'auto', opacity: 0.5 }}
+                />
+              </a>
+            ) : (
               <NavLink
                 key={to}
                 to={to}
@@ -296,3 +351,4 @@ export function Sidebar() {
     </>
   );
 }
+

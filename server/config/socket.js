@@ -8,6 +8,7 @@ import logger from '../utils/logger.js';
 import { getAdminSession } from '../repositories/adminSessionsRepository.js';
 import { resolveAdminPermissions, getRoomsForPermissions } from './eventPermissions.js';
 import { createAdapter } from '@socket.io/redis-adapter';
+import { liveQaService } from '../services/liveQaService.js';
 import { getRedisClient } from '../utils/redis.js';
 import { waitingRoomService } from '../services/waitingRoomService.js';
 

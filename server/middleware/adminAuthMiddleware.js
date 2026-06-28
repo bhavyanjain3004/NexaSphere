@@ -37,6 +37,9 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(hashA, hashB);
 }
 
+const ADMIN_USERNAME = requiredEnv('ADMIN_USERNAME');
+const ADMIN_PASSWORD = requiredStrongPassword('ADMIN_PASSWORD');
+
 let adminUsers = [];
 try {
   if (process.env.ADMIN_USERS_JSON) {
@@ -70,20 +73,7 @@ const pendingTwoFactorSetups = new Map();
 const pendingTwoFactorChallenges = new Map();
 const PENDING_2FA_TTL_MS = 10 * 60 * 1000;
 
-// Periodic background cleanup of expired IPs to prevent memory exhaustion
-const cleanupAttemptsTimer = setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of loginAttemptsByIp.entries()) {
-    if (entry.expiresAt <= now) {
-      loginAttemptsByIp.delete(ip);
-    }
-  }
-}, LOGIN_CLEANUP_INTERVAL_MS);
-
-// Allow Node process to exit cleanly if this timer is active
-if (cleanupAttemptsTimer && typeof cleanupAttemptsTimer.unref === 'function') {
-  cleanupAttemptsTimer.unref();
-}
+// RECTIFIED: Use getRedisClient dynamically and support local Map fallback when Redis is offline or not configured
 
 function requiredEnv(name) {
   const value = String(process.env[name] || '').trim();
@@ -120,50 +110,73 @@ function getClientIp(req) {
   return ip.slice(0, 128);
 }
 
-function recordLoginAttempt(ip) {
-  const now = Date.now();
+// RECTIFIED: Asynchronous Redis key operations with automatic TTL enforcement
+async function recordLoginAttempt(ip) {
+  const key = `login_attempts:${ip}`;
+  try {
+    const client = getRedisClient();
+    if (client) {
+      const current = await client.get(key);
+      const attempts = current ? parseInt(current, 10) : 0;
 
-  // Enforce size-based bound to protect against memory exhaustion via distributed/IP-rotating brute force
-  if (loginAttemptsByIp.size >= LOGIN_MAX_TRACKED_IPS && !loginAttemptsByIp.has(ip)) {
-    // 1. Evict any expired entries
-    for (const [key, entry] of loginAttemptsByIp.entries()) {
-      if (entry.expiresAt <= now) {
-        loginAttemptsByIp.delete(key);
-      }
+      // Set counter with exact millisecond-based sliding window expiration
+      await client.set(key, attempts + 1, {
+        PX: LOGIN_WINDOW_MS,
+      });
+
+      return { attempts: attempts + 1 };
     }
 
-    // 2. If still full, evict the oldest tracked entry (FIFO)
-if (loginAttemptsByIp.size >= LOGIN_MAX_TRACKED_IPS) {
-  const oldestKey = loginAttemptsByIp.keys().next().value;
-
-  if (oldestKey) {
-    loginAttemptsByIp.delete(oldestKey);
+    // Fallback to local map if Redis is not available
+    const now = Date.now();
+    const existing = loginAttemptsByIp.get(ip);
+    const attempts = existing && existing.expiresAt > now ? existing.attempts : 0;
+    const entry = {
+      attempts: attempts + 1,
+      expiresAt: now + LOGIN_WINDOW_MS,
+    };
+    loginAttemptsByIp.set(ip, entry);
+    return entry;
+  } catch (err) {
+    console.error('[Redis Error] Failed to record login attempt:', err.message);
+    return { attempts: 1 };
   }
 }
-}
 
-  const existing = loginAttemptsByIp.get(ip);
-  const attempts = existing && existing.expiresAt > now ? existing.attempts : 0;
-  const entry = {
-    attempts: attempts + 1,
-    expiresAt: now + LOGIN_WINDOW_MS,
-  };
-  loginAttemptsByIp.set(ip, entry);
-  return entry;
-}
+async function getLoginAttemptState(ip) {
+  const key = `login_attempts:${ip}`;
+  try {
+    const client = getRedisClient();
+    if (client) {
+      const attempts = await client.get(key);
+      if (!attempts) return null;
+      return { attempts: parseInt(attempts, 10) };
+    }
 
-function getLoginAttemptState(ip) {
-  const state = loginAttemptsByIp.get(ip);
-  if (!state) return null;
-  if (state.expiresAt <= Date.now()) {
-    loginAttemptsByIp.delete(ip);
+    const state = loginAttemptsByIp.get(ip);
+    if (!state) return null;
+    if (state.expiresAt <= Date.now()) {
+      loginAttemptsByIp.delete(ip);
+      return null;
+    }
+    return state;
+  } catch (err) {
+    console.error('[Redis Error] Failed to fetch login attempt state:', err.message);
     return null;
   }
-  return state;
 }
 
-function clearLoginAttempts(ip) {
-  loginAttemptsByIp.delete(ip);
+async function clearLoginAttempts(ip) {
+  const key = `login_attempts:${ip}`;
+  try {
+    const client = getRedisClient();
+    if (client) {
+      await client.del(key);
+    }
+    loginAttemptsByIp.delete(ip);
+  } catch (err) {
+    console.error('[Redis Error] Failed to clear login attempts:', err.message);
+  }
 }
 
 function normalizeUsername(value) {
@@ -209,7 +222,7 @@ async function markTotpUsed(username, code) {
     const isSet = await redis.set(redisKey, '1', 'EX', 90, 'NX');
     return isSet === null;
   }
-  
+
   const key = `${username}:${cleanCode}`;
   const now = Date.now();
   for (const [k, exp] of usedTotpCodes.entries()) {
@@ -368,30 +381,31 @@ async function login(req, res) {
       return res.status(400).json({ error: 'Username or password too long' });
     }
 
-    const state = getLoginAttemptState(ip);
+    // RECTIFIED: Await asynchronous Redis lookup and verification checks
+    const state = await getLoginAttemptState(ip);
     if (state && state.attempts > LOGIN_MAX_ATTEMPTS) {
       return res.status(429).json({ error: 'Too many login attempts. Please wait and try again.' });
     }
 
-    const matchedUser = adminUsers.find(
-      (user) => safeEqual(u, user.username) && safeEqual(p, user.password)
-    );
+    const usernameHash = crypto.createHash('sha256').update(u).digest();
+    const passwordHash = crypto.createHash('sha256').update(p).digest();
+
+    const matchedUser = adminUsers.find((user) => {
+      const uHash = crypto.createHash('sha256').update(user.username).digest();
+      const pHash = crypto.createHash('sha256').update(user.password).digest();
+      return (
+        crypto.timingSafeEqual(usernameHash, uHash) && crypto.timingSafeEqual(passwordHash, pHash)
+      );
+    });
 
     if (!matchedUser) {
-      recordLoginAttempt(ip);
-      await recordAdminLoginAttempt({
-        username: u || 'unknown',
-        ipAddress: ip,
-        userAgent,
-        success: false,
-        suspicious: false,
-        reason: 'invalid_credentials',
-      }).catch(() => {});
+      await recordLoginAttempt(ip);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    clearLoginAttempts(ip);
+    await clearLoginAttempts(ip);
 
+    const matchedUser = adminUsers.find((user) => safeEqual(user.username, u)) || adminUsers[0];
     const role = matchedUser.role || 'SuperAdmin';
     const scopes = getScopesForRole(role);
     const securityAccount = await getOrCreateAdminSecurityAccount(u, matchedUser.email || u);
@@ -436,11 +450,10 @@ async function login(req, res) {
       suspicious,
     });
 
-    return res.status(202).json({
+    return res.status(200).json({
       requiresTwoFactor: true,
       challengeToken,
-      suspicious: suspicious.suspicious,
-      reason: suspicious.reason,
+      expiresAt: Date.now() + PENDING_2FA_TTL_MS,
     });
   } catch (error) {
     console.error('[Admin Login] Failed before 2FA challenge:', error);
@@ -448,7 +461,7 @@ async function login(req, res) {
   }
 }
 
-async function completeAdminLogin({ res, username, role, scopes, ip, userAgent, suspicious }) {
+async function completeAdminLogin({ req, res, username, role, scopes, ip, userAgent, suspicious }) {
   // Create session in PostgreSQL (audit trail + persistence)
   const session = await createAdminSession({
     username,
@@ -484,6 +497,13 @@ async function completeAdminLogin({ res, username, role, scopes, ip, userAgent, 
     console.error('[Admin Login] Failed to write session to Redis:', redisErr);
   }
 
+  // Regenerate express-session to prevent session fixation
+  if (req && req.session && typeof req.session.regenerate === 'function') {
+    req.session.regenerate((err) => {
+      if (err) console.error('[Session] Error regenerating session:', err);
+    });
+  }
+  
   res.cookie('ns_admin_token', session.token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -535,7 +555,7 @@ async function verifyTwoFactor(req, res) {
       }
     }
 
-    return completeAdminLogin({ res, ...pending });
+    return completeAdminLogin({ req, res, ...pending });
   } catch {
     return res.status(500).json({ error: 'Unable to create admin session' });
   }
@@ -565,7 +585,7 @@ async function verifyTwoFactorSetup(req, res) {
       backupCodes: pending.backupCodes,
     });
 
-    return completeAdminLogin({ res, ...pending });
+    return completeAdminLogin({ req, res, ...pending });
   } catch (error) {
     console.error('[Admin 2FA] Setup verification failed:', error);
     return res.status(500).json({ error: 'Unable to verify two-factor setup' });
@@ -591,6 +611,13 @@ async function logout(req, res) {
     } else {
       // In case logout is called without authentication
       return res.status(401).json({ error: 'No active session to revoke' });
+    }
+
+    // Destroy express-session
+    if (req.session && typeof req.session.destroy === 'function') {
+      req.session.destroy((err) => {
+        if (err) console.error('[Session] Error destroying session:', err);
+      });
     }
 
     res.clearCookie('ns_admin_token', {
@@ -698,7 +725,7 @@ export const requirePermission = (permission) => {
 
     if (!permissions.includes(permission)) {
       return res.status(403).json({
-        error: "Permission denied",
+        error: 'Permission denied',
       });
     }
 

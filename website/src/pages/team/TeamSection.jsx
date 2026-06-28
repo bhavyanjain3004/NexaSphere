@@ -172,6 +172,20 @@ export default function TeamSection({ onApply }) {
   }, []);
 
   useEffect(() => {
+    // Tracks animationend listeners added dynamically below so they can be
+    // explicitly removed on unmount — { once: true } only cleans up after
+    // the event actually fires, but if the component unmounts mid-animation
+    // the listener is still attached and would mutate a detached DOM node's
+    // style when it eventually fires.
+    const pendingListeners = [];
+    const addRevealListener = (target) => {
+      const handler = () => {
+        target.style.opacity = '1';
+        target.style.transform = 'none';
+      };
+      target.addEventListener('animationend', handler, { once: true });
+      pendingListeners.push({ target, handler });
+    };
     const elements = document.querySelectorAll(
       '#section-team .pop-flip, #section-team .pop-in, #section-team .pop-word'
     );
@@ -180,14 +194,7 @@ export default function TeamSection({ onApply }) {
         entries.forEach((e) => {
           if (e.isIntersecting && !e.target.classList.contains('fired')) {
             e.target.classList.add('fired');
-            e.target.addEventListener(
-              'animationend',
-              () => {
-                e.target.style.opacity = '1';
-                e.target.style.transform = 'none';
-              },
-              { once: true }
-            );
+            addRevealListener(e.target);
             obs.unobserve(e.target);
           }
         });
@@ -200,20 +207,16 @@ export default function TeamSection({ onApply }) {
         const rect = el.getBoundingClientRect();
         if (rect.top < window.innerHeight + 100 && !el.classList.contains('fired')) {
           el.classList.add('fired');
-          el.addEventListener(
-            'animationend',
-            () => {
-              el.style.opacity = '1';
-              el.style.transform = 'none';
-            },
-            { once: true }
-          );
+          addRevealListener(el);
         }
       });
     }, 120);
     return () => {
       obs.disconnect();
       clearTimeout(fallback);
+      pendingListeners.forEach(({ target, handler }) => {
+        target.removeEventListener('animationend', handler);
+      });
     };
   }, []);
 

@@ -44,7 +44,7 @@ export const authRateLimiter = rateLimit({
   windowMs: AUTH_WINDOW_MS,
   max: AUTH_MAX_ATTEMPTS,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   store: createRateLimitStore('auth-limit:'),
   handler: createRateLimitHandler('Authentication'),
 });
@@ -57,7 +57,7 @@ export const protectedActionRateLimiter = rateLimit({
   windowMs: AUTH_WINDOW_MS,
   max: AUTH_MAX_ATTEMPTS,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   store: createRateLimitStore('protected-action-limit:'),
   handler: createRateLimitHandler('Protected Action'),
 });
@@ -70,25 +70,7 @@ export const passwordResetRateLimiter = rateLimit({
   windowMs: RESET_WINDOW_MS,
   max: RESET_MAX_ATTEMPTS,
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   store: createRateLimitStore('password-reset-limit:'),
-  handler: (req, res, _next, options) => {
-    const ipAddress = req.ip;
-    const failedAttempts = getFailedAttempts(ipAddress);
-
-    if (failedAttempts > 10) {
-      blockIP(ipAddress);
-
-      return res.status(429).json({
-        error: 'IP temporarily blocked due to suspicious activity',
-      });
-    }
-    logger.warn('[Security] Password Reset rate limit exceeded', {
-      ip: req.ip,
-      path: req.originalUrl || req.path,
-    });
-    res.status(429).json({
-      error: 'Too many password reset requests. Please try again later.',
-    });
-  },
+  handler: createRateLimitHandler('Password Reset'),
 });

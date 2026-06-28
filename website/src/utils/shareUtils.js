@@ -59,10 +59,11 @@ export function getQRUrl(text) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;
 }
 
+/* eslint-disable no-control-regex */
 export async function copyToClipboard(text) {
   // Prevent pastejacking/clipboard attacks by removing dangerous control characters (including carriage returns \r)
   const sanitizedText = String(text || '').replace(
-    /[\x00-\x08\x0B\x0C\x0D\x0E-\x1F\x7F-\x9F]/g, // eslint-disable-line no-control-regex
+    /[\x00-\x08\x0B\x0C\x0D\x0E-\x1F\x7F-\x9F]/g,
     ''
   );
   if (navigator.clipboard?.writeText) {
@@ -78,3 +79,4 @@ export async function copyToClipboard(text) {
   document.body.removeChild(el);
   return ok;
 }
+/* eslint-enable no-control-regex */

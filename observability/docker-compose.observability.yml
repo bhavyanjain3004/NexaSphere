@@ -108,6 +108,7 @@ services:
       - '9600:9600'
     volumes:
       - ./logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ../server/logs:/var/log/nexasphere:ro
     environment:
       LS_JAVA_OPTS: '-Xms256m -Xmx256m'
     depends_on:
@@ -193,6 +194,16 @@ services:
     networks:
       - observability
       - default
+
+  elastalert:
+    build: ./elastalert
+    container_name: nexasphere-elastalert
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - observability
 
 volumes:
   prometheus_data:

@@ -39,6 +39,7 @@ const AdvancedCustomizer = ({ currentConfig, onUpdate }) => {
   const [history, setHistory] = useState([currentConfig]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [contrastStatus, setContrastStatus] = useState({ ok: true, ratio: 4.5 });
+  const [importError, setImportError] = useState(null);
 
   // Mock Contrast Checker (WCAG AA requirement)
   useEffect(() => {
@@ -85,11 +86,17 @@ const AdvancedCustomizer = ({ currentConfig, onUpdate }) => {
       try {
         const config = JSON.parse(event.target.result);
         updateConfig(config);
+        setImportError(null);
       } catch (err) {
-        alert('Invalid Theme JSON');
+        setImportError('Invalid theme file — please upload a valid NexaSphere theme JSON export.');
       }
     };
+    reader.onerror = () => {
+      setImportError('Could not read the selected file. Please try again.');
+    };
     reader.readAsText(file);
+    // Reset the input so re-selecting the same (still-broken) file re-triggers onChange
+    e.target.value = '';
   };
 
   return (
@@ -122,6 +129,12 @@ const AdvancedCustomizer = ({ currentConfig, onUpdate }) => {
             <Upload size={16} /> Import
             <input type="file" hidden onChange={importTheme} accept=".json" />
           </label>
+          {importError && (
+            <div className="a11y-badge a11y-fail" role="alert">
+              <AlertTriangle size={16} />
+              <span>{importError}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -226,7 +239,7 @@ const AdvancedCustomizer = ({ currentConfig, onUpdate }) => {
                     value={currentConfig.spacing?.radius || 12}
                     onChange={(e) =>
                       updateConfig({
-                        spacing: { ...currentConfig.spacing, radius: parseInt(e.target.value) },
+                        spacing: { ...currentConfig.spacing, radius: parseInt(e.target.value, 10) },
                       })
                     }
                   />
@@ -254,7 +267,10 @@ const AdvancedCustomizer = ({ currentConfig, onUpdate }) => {
                     value={currentConfig.spacing?.padding || 28}
                     onChange={(e) =>
                       updateConfig({
-                        spacing: { ...currentConfig.spacing, padding: parseInt(e.target.value) },
+                        spacing: {
+                          ...currentConfig.spacing,
+                          padding: parseInt(e.target.value, 10),
+                        },
                       })
                     }
                   />
