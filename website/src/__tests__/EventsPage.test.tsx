@@ -10,6 +10,12 @@ vi.mock('../context/StudentAuthContext', () => ({
 
 import EventsPage from '../pages/events/EventsPage';
 
+vi.mock('../context/StudentAuthContext', () => ({
+  useStudentAuth: () => ({
+    user: { id: 'STU001', sub: 'STU001', name: 'Test Student' },
+  }),
+}));
+
 describe('EventsPage Component', () => {
   const mockEvents: any[] = [
     {

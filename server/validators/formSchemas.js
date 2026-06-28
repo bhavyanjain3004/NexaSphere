@@ -65,15 +65,7 @@ const CommonIdentitySchema = z
 
 const RecruitmentExtrasSchema = z
   .object({
-    year: z
-      .string({
-        required_error: 'Year is required',
-        invalid_type_error: 'Year is required',
-        message: 'Year is required',
-      })
-      .trim()
-      .min(1, 'Year is required')
-      .max(40),
+    year: z.string().trim().max(40).optional(),
     role: OptionalText(80),
     interests: TextList,
     skills: OptionalText(400),

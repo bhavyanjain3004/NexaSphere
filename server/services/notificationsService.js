@@ -1,4 +1,3 @@
-import { notificationPreferencesRepository } from '../repositories/notificationPreferencesRepository.js';
 import { notificationAnalyticsRepository } from '../repositories/notificationAnalyticsRepository.js';
 import { pushSubscriptionsRepository } from '../repositories/pushSubscriptionsRepository.js';
 import { notificationsRepository } from '../repositories/notificationsRepository.js';
@@ -21,7 +20,7 @@ class NotificationsService {
   }
 
   async addNotification(userId, data) {
-    const { type, priority = 'normal' } = data;
+    const { type = 'info', priority = 'normal', title, message, link = null } = data;
 
     // Create the notification in the database first
     const note = await notificationsRepository.create({
@@ -51,7 +50,7 @@ class NotificationsService {
 
     if (!config.push) return note; // Opted out of push, database record returned
 
-    let effectiveFrequency = config.frequency;
+    let effectiveFrequency = result.frequency;
 
     // Feature: If user hasn't opened app in 5 days, increase frequency (bypass digest)
     if (activity.daysSinceLastActive >= 5 && effectiveFrequency !== 'disabled') {
